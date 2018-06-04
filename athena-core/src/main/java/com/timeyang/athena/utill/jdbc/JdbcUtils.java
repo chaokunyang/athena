@@ -82,12 +82,17 @@ public class JdbcUtils {
 
             List<T> results = new ArrayList<>();
             while (rs.next()) {
-                results.add(rowMapper.mapRow(rs, rs.getRow()));
+                int row = -1;
+                try {
+                    row = rs.getRow();
+                } catch (SQLException ignored) {}
+                results.add(rowMapper.mapRow(rs, row));
             }
             rs.close();
 
             return results;
         } catch (SQLException e) {
+            LOGGER.error("Execute sql failed, sql: " + sql);
             e.printStackTrace();
             throw new AthenaException("Execute sql failed, sql: " + sql, e);
         }
@@ -130,6 +135,11 @@ public class JdbcUtils {
     }
 
     public interface RowMapper<T> {
+        /**
+         * @param rs ResultSet
+         * @param rowNum Support for the getRow method is optional for ResultSets with a result set type of TYPE_FORWARD_ONLY. If not supported, -1 is passed
+         * @return Object
+         */
         T mapRow(ResultSet rs, int rowNum) throws SQLException;
     }
 }

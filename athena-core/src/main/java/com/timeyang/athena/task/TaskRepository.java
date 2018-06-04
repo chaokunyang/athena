@@ -107,7 +107,7 @@ public class TaskRepository {
                 "(task_name, host, class_name, params, max_tries, submit_time, classpath, retry_wait, task_type) " +
                 "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection connection = this.dataSource.getConnection();
-             PreparedStatement pStatement = connection.prepareStatement(sql, new String[]{"task_id"})) {
+             PreparedStatement pStatement = connection.prepareStatement(sql, new String[]{"TASK_ID"})) {
             pStatement.setString(1, task.getTaskName());
             pStatement.setString(2, task.getHost());
             pStatement.setString(3, task.getClassName());
@@ -238,7 +238,7 @@ public class TaskRepository {
                 "SET try_number = ?, pid = ? " +
                 "WHERE task_id = ?";
         try (Connection connection = this.dataSource.getConnection();
-             PreparedStatement pStatement = connection.prepareStatement(sql, new String[]{"task_id"})) {
+             PreparedStatement pStatement = connection.prepareStatement(sql, new String[]{"TASK_ID"})) {
             pStatement.setInt(1, task.getTryNumber());
             pStatement.setInt(2, task.getPid());
             pStatement.setLong(3, task.getTaskId());

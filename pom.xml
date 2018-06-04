@@ -34,7 +34,7 @@
         <curator.version>2.6.0</curator.version>
         <spark.version>2.3.0</spark.version>
         <flink.version>1.4.0</flink.version>
-        <derby.version>10.10.2.0</derby.version>
+        <derby.version>10.11.1.1</derby.version>
         <hive.version>1.2.2</hive.version>
 
         <jetty.version>9.3.20.v20170531</jetty.version>
@@ -363,6 +363,11 @@
                 <scope>compile</scope>
             </dependency>
 
+            <dependency>
+                <groupId>org.apache.derby</groupId>
+                <artifactId>derby</artifactId>
+                <version>${derby.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.derby</groupId>
                 <artifactId>derbyclient</artifactId>
