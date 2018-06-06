@@ -9,34 +9,47 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
+
 
 /**
  * TaskExecutor inspired by {@code org.apache.spark.executor.CoarseGrainedExecutorBackend}
  * <p>Download jars, set up URLClassLoader ...</p>
  *
- * @author https://github.com/chaokunyang
+ * @author yangck
  */
 public class TaskExecutorLauncher {
-    private static final String TASK_EXECUTOR_NAME = "com.timeyang.athena.task.exec.TaskExecutor";
+    private static final String TASK_EXECUTOR_NAME = "com.qjzh.pankoo.task.exec.TaskExecutor";
     private static final DateTimeFormatter FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
     /**
      * get classpath
      */
     private static URL[] getClassPath(String mainClasspath, String classpathFilePath) {
-        List<String> mainClasspathList = Arrays.asList(mainClasspath.split(";"));
-        Set<String> classpath = new HashSet<>(mainClasspathList);
+        List<String> mainClasspathList = Arrays.asList(mainClasspath.split("[;,:]"));
+        Set<String> classpath = new LinkedHashSet<>(mainClasspathList); // reserve order
 
-        File classpathFile = new File(classpathFilePath);
-        if (classpathFile.exists()) {
+        if (classpathFilePath != null &&
+                !classpathFilePath.trim().equalsIgnoreCase("")) {
+            File classpathFile = new File(classpathFilePath);
             try {
                 String extraClasspathStr = IoUtils.readFile(classpathFile, "UTF-8");
-                String[] split = extraClasspathStr.split(";");
-                classpath.addAll(Arrays.asList(split));
+                String[] splits = extraClasspathStr.split("[;,:]");
+                for (String split : splits) {
+                    if (split.endsWith("*")) {
+                        Files.list(Paths.get(split).getParent())
+                                .map(p -> p.toAbsolutePath().toString())
+                                .forEach(classpath::add);
+                    } else {
+                        classpath.add(split);
+                    }
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -50,6 +63,14 @@ public class TaskExecutorLauncher {
             info("Add hadoop classpath to task classpath");
         }
 
+        List<String> sparkClasspath = getSparkClasspath();
+        if (sparkClasspath.isEmpty()) {
+            info("Spark not installed");
+        } else {
+            classpath.addAll(sparkClasspath);
+            info("Add spark classpath to task classpath");
+        }
+
         URL[] urls = classpath.stream()
                 .map(str -> {
                     try {
@@ -60,7 +81,6 @@ public class TaskExecutorLauncher {
                     }
                 })
                 .toArray(URL[]::new);
-        info("classpath: " + Arrays.asList(urls));
         return urls;
     }
 
@@ -84,6 +104,7 @@ public class TaskExecutorLauncher {
         info("classpath: " + Arrays.asList(classpath));
 
         URLClassLoader urlClassLoader = createClassLoader(classpath);
+        Thread.currentThread().setContextClassLoader(urlClassLoader);
         try {
             Class<?> executorClass = urlClassLoader.loadClass(TASK_EXECUTOR_NAME);
             info("executorClass: " + executorClass);
@@ -131,7 +152,19 @@ public class TaskExecutorLauncher {
                         break;
                     sb.append(buffer, 0, rsz);
                 }
-                return Arrays.asList(sb.toString().split(":"));
+
+                List<String> hcp = new ArrayList<>();
+                String[] splits = sb.toString().split("[:,;]");
+                for (String split : splits) {
+                    if (split.endsWith("*")) {
+                        Files.list(Paths.get(split).getParent())
+                                .map(p -> p.toAbsolutePath().toString())
+                                .forEach(hcp::add);
+                    } else {
+                        hcp.add(split);
+                    }
+                }
+                return hcp;
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
                 throw new RuntimeException(e);
@@ -145,7 +178,19 @@ public class TaskExecutorLauncher {
                 }
             }
         } catch (IOException | InterruptedException e) {
-            // e.printStackTrace();
+            e.printStackTrace();
+            return Collections.emptyList();
+        }
+    }
+
+    private static List<String> getSparkClasspath() {
+        String sparkHome = System.getenv("SPARK_HOME");
+        try {
+            return Files.list(Paths.get(sparkHome, "lib"))
+                    .map(p -> p.toAbsolutePath().toString())
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            e.printStackTrace();
             return Collections.emptyList();
         }
     }
@@ -153,7 +198,7 @@ public class TaskExecutorLauncher {
     private static void info(Object msg) {
         String time = FORMATTER.format(Instant.now());
         System.out.printf("%s [%s] INFO %s - %s \n",
-                time, Thread.currentThread().getName(), TaskExecutorLauncher.class.getCanonicalName(),
+                time, Thread.currentThread().getName(), TaskExecutorLauncher.class.getName(),
                 msg.toString());
     }
 

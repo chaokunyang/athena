@@ -3,12 +3,11 @@ package com.timeyang.athena.utill;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.net.UnknownHostException;
+import java.io.File;
+import java.net.*;
 import java.nio.charset.Charset;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author https://github.com/chaokunyang
@@ -63,7 +62,28 @@ public class SystemUtils {
     }
 
     public static String getCurrentClasspath() {
-        return System.getProperty("java.class.path");
+        // return System.getProperty("java.class.path");
+        String split;
+        if (IS_WINDOWS) {
+            split = ";";
+        } else {
+            split = ":";
+        }
+        ClassLoader cl = ClassLoader.getSystemClassLoader();
+        Set<URL> urls = new LinkedHashSet<>(Arrays.asList(((URLClassLoader) cl).getURLs()));
+
+        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+        if (contextClassLoader instanceof URLClassLoader) {
+            urls.addAll(Arrays.asList(((URLClassLoader) contextClassLoader).getURLs()));
+        }
+
+        return urls.stream().map(url -> {
+            try {
+                return new File((url.toURI())).getAbsolutePath();
+            } catch (URISyntaxException e) {
+                throw new IllegalStateException();
+            }
+        }).collect(Collectors.joining(split));
     }
 
     public static String getEncoding() {
