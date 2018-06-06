@@ -8,10 +8,11 @@ import com.timeyang.athena.task.message.TaskMessage.LogQueryResult;
 import com.timeyang.athena.task.message.TaskMessage.TaskFailure;
 import com.timeyang.athena.task.message.TaskMessage.TaskSuccess;
 import com.timeyang.athena.task.message.TaskMessageCodec;
-import com.timeyang.athena.utill.IoUtils;
 import com.timeyang.athena.utill.ParametersUtils;
 import com.timeyang.athena.utill.StringUtils;
 import com.timeyang.athena.utill.SystemUtils;
+import com.timeyang.athena.utill.cmd.CmdUtils;
+import com.timeyang.athena.utill.cmd.Result;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
@@ -119,48 +120,49 @@ public class TaskBackend {
 
     public void runTask(TaskInfo taskInfo) {
         Long taskId = taskInfo.getTaskId();
+        LOGGER.debug("starting tasks: " + startingTaskIds);
         // start task if not started
-        if (!startingTaskIds.contains(taskId)) {
-            startingTaskIds.add(taskId);
-
-            String className = taskInfo.getClassName();
-            Task task = TaskUtils.createTask(className, ParametersUtils.fromArgs(taskInfo.getParams()).get());
-            taskInstances.put(taskId, task);
-
-            LOGGER.info("init task [{}]", taskId);
-            task.init(TaskContextImpl.makeTaskContext(taskId));
-
-            String taskCmd = TaskUtils.getTaskCmd(taskInfo, host, port);
-            try {
-                LOGGER.info("Starting task. task_start_cmd: [{}]", taskCmd);
-                Process process = Runtime.getRuntime().exec(taskCmd);
-                process.waitFor();
-                String procOutput = IoUtils.toString(process.getInputStream(), SystemUtils.ENCODING);
-                String procError = IoUtils.toString(process.getErrorStream(), "GBK");
-                if (StringUtils.hasLength(procOutput))
-                    LOGGER.info("task cmd output: " + procOutput);
-                if (StringUtils.hasLength(procError)) {
-                    LOGGER.warn("task error output: " + procError);
-                }
-
-                LOGGER.info("task_start_cmd of task [{}] executed", taskId);
-            } catch (Exception e) {
-                Throwable cause = e.getCause();
-                cause.printStackTrace();
-                if (cause instanceof ClassNotFoundException) {
-                    LOGGER.error("Can't find task class {}, mark task failed", className);
-                }
-                if (cause instanceof IllegalAccessException || cause instanceof InstantiationException) {
-                    LOGGER.error("can't instantiate task class, mark task failed");
-                }
-                if (cause instanceof IOException || cause instanceof InterruptedException) {
-                    LOGGER.error("Execute task_cmd failed. task_cmd []", taskCmd);
-                }
-
-                taskCallback.onFailure(taskId);
-                startingTaskIds.remove(taskId);
-                taskInstances.remove(taskId);
+        synchronized (startingTaskIds) {
+            if (!startingTaskIds.contains(taskId)) {
+                startingTaskIds.add(taskId);
+            } else {
+                LOGGER.debug("task [{}] is starting, won't run it repeatedly", taskId);
+                return;
             }
+        }
+
+        String className = taskInfo.getClassName();
+        Task task = TaskUtils.createTask(className, ParametersUtils.fromArgs(taskInfo.getParams()).get());
+        taskInstances.put(taskId, task);
+
+        LOGGER.info("init task [{}]", taskId);
+        task.init(TaskContextImpl.makeTaskContext(taskId));
+
+        String taskCmd = TaskUtils.getTaskCmd(taskInfo, host, port);
+        try {
+            LOGGER.info("Starting task. task_start_cmd: [{}]", taskCmd);
+            Result exec = CmdUtils.exec(taskCmd);
+            if (StringUtils.hasLength(exec.getOut()))
+                LOGGER.info("task cmd output: " + exec.getOut());
+            if (StringUtils.hasLength(exec.getError())) {
+                LOGGER.warn("task error output: " + exec.getError());
+            }
+            LOGGER.info("task_start_cmd of task [{}] executed", taskId);
+        } catch (Exception e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof ClassNotFoundException) {
+                LOGGER.error("Can't find task class {}, mark task failed", className, cause);
+            }
+            if (cause instanceof IllegalAccessException || cause instanceof InstantiationException) {
+                LOGGER.error("can't instantiate task class, mark task failed", cause);
+            }
+            if (cause instanceof IOException || cause instanceof InterruptedException) {
+                LOGGER.error("Execute task_cmd failed. task_cmd [{}]", taskCmd, cause);
+            }
+
+            taskCallback.onFailure(taskId);
+            startingTaskIds.remove(taskId);
+            taskInstances.remove(taskId);
         }
     }
 
@@ -330,7 +332,7 @@ public class TaskBackend {
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-            cause.printStackTrace();
+            LOGGER.error(cause.getMessage(), cause);
             ctx.close();
         }
     }
@@ -403,7 +405,7 @@ public class TaskBackend {
                 channel.writeAndFlush(queryRequest).syncUninterruptibly();
                 wait();
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                LOGGER.error(e.getMessage(), e);
             }
             return lines;
         }

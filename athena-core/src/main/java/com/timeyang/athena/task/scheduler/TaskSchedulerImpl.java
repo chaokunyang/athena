@@ -10,8 +10,10 @@ import com.timeyang.athena.task.TaskState;
 import com.timeyang.athena.task.exec.LogManager;
 import com.timeyang.athena.task.exec.TaskBackend;
 import com.timeyang.athena.task.exec.TaskCallback;
+import com.timeyang.athena.utill.ThreadUtils;
 import com.timeyang.athena.utill.jdbc.Page;
 import com.timeyang.athena.utill.StringUtils;
+import com.timeyang.athena.utill.jdbc.PagedResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,7 +33,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
     private static final Logger LOGGER = LoggerFactory.getLogger(TaskSchedulerImpl.class);
     private static final long SCHEDULE_INTERVAL_SECONDS = 1;
     private static final long AWAIT_TERMINATION_SECONDS = 5;
-    private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2);
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2, ThreadUtils.createThreadFactory("TaskScheduler"));
 
     private final AthenaConf athenaConf;
     private final TaskRepository taskRepository;
@@ -75,6 +77,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
             task.setHost(getTaskHost(task));
         }
 
+        LOGGER.info("schedule task [{}] for execute on host {}", task.getTaskId(), task.getHost());
         this.taskBackend.runTask(task);
     }
 
@@ -110,27 +113,41 @@ public class TaskSchedulerImpl implements TaskScheduler {
     private void scheduleWaitingTasks() {
         List<Page.Sort> sorts = Collections.singletonList(
                 new Page.Sort("submit_time", Page.Order.ASC));
-        Page page = new Page(0, 10, sorts);
-        List<WaitingTask> waitingTasks = taskRepository
-                .getWaitingTasks(page)
-                .getElements();
 
-        waitingTasks.forEach(task -> {
-            // response thread interrupt
-            if(!Thread.currentThread().isInterrupted())
-                schedule(task);
-        });
+        PagedResult<WaitingTask> pagedResult;
+        do {
+            Page page = new Page(0, 10, sorts);
+            pagedResult = taskRepository.getWaitingTasks(page);
+            if (pagedResult.getTotalSize() > 0) {
+                LOGGER.info("There's {} tasks waiting to be scheduled", pagedResult.getTotalSize());
+            }
+
+            List<WaitingTask> waitingTasks = pagedResult.getElements();
+            waitingTasks.forEach(task -> {
+                // response thread interrupt
+                if(!Thread.currentThread().isInterrupted()) {
+                    LOGGER.info("task [{}] is in waiting_task, schedule it", task);
+                    schedule(task);
+                }
+            });
+        } while (pagedResult.getTotalSize() > pagedResult.getSize());
     }
 
     private void checkRunningTasks() {
-        List<RunningTask> tasks = taskRepository.getAllRunningTasks();
-        tasks.forEach(task -> {
-            // if task is not running(maybe system restarted), schedule the task
-            if (!taskBackend.isTaskRunning(task.getTaskId())) {
-                LOGGER.info("task {} in table {} is not running, start it", task.getTaskId(), TaskRepository.RUNNING_TASK_TABLE);
-                schedule(task);
-            }
-        });
+        LOGGER.info("Check running tasks");
+        PagedResult<RunningTask> pagedResult;
+        do {
+            pagedResult = taskRepository.getRunningTasks(new Page(0, 10));
+            LOGGER.info("There's {} tasks waiting to be scheduled", pagedResult.getTotalSize());
+            List<RunningTask> tasks = pagedResult.getElements();
+            tasks.forEach(task -> {
+                // if task is not running(maybe system restarted), schedule the task
+                if (!taskBackend.isTaskRunning(task.getTaskId())) {
+                    LOGGER.info("task {} in table {} is not running, start it", task.getTaskId(), TaskRepository.RUNNING_TASK_TABLE);
+                    schedule(task);
+                }
+            });
+        } while (pagedResult.getTotalSize() > pagedResult.getSize());
     }
 
     /**

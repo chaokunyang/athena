@@ -60,7 +60,7 @@ public class TaskExecutorLauncher {
                     }
                 })
                 .toArray(URL[]::new);
-        System.out.println("classpath: " + Arrays.asList(urls));
+        info("classpath: " + Arrays.asList(urls));
         return urls;
     }
 

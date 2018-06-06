@@ -100,3 +100,5 @@ buildNumber.properties
 **/.tasks
 **/.local
 *.pid
+
+athena-core/athena

@@ -7,17 +7,27 @@ import com.timeyang.athena.utill.StringUtils;
 import com.timeyang.athena.utill.SystemUtils;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Map;
 
 /**
  * @author https://github.com/chaokunyang
  */
 public class TaskUtils {
+    private static final AthenaConf athenaConf = AthenaConf.getConf();
     private static final String DEFAULT_TASK_EXEC_DIR_NAME = ".tasks";
     private static final String DEFAULT_TASKS_DIR_PATH = getDefaultTasksDir();
     private static final String TASK_LOG_FILE_NAME = "task.log";
+    private static final String CLASSPATH_SPLIT;
 
-    private static final AthenaConf athenaConf = AthenaConf.getConf();
+    static {
+        if (SystemUtils.IS_WINDOWS) {
+            CLASSPATH_SPLIT = ";";
+        } else {
+            CLASSPATH_SPLIT = ":";
+        }
+    }
 
     private static String getDefaultTasksDir() {
         String dir = String.format("%s/%s", SystemUtils.WORK_DIR, DEFAULT_TASK_EXEC_DIR_NAME);
@@ -60,19 +70,21 @@ public class TaskUtils {
             // must add brackets to "if not exist", or else following commands will bt treated as on command. No need for linux.
             return String.format("cmd /c (if not exist %s mkdir %s)", taskDir, taskDir);
         } else {
-            return String.format("[ -d %s ] || mkdir -p %s", taskDir, taskDir);
+            // add '' to cmd to compose a cmd
+            return String.format("test -d %s || mkdir -p %s", taskDir, taskDir);
         }
     }
 
     public static String getTaskExecCmd(TaskInfo task, String taskRpcHost, int taskRpcPort) {
         Long taskId = task.getTaskId();
+
         String params = task.getParams();
         if (!StringUtils.hasText(params)) {
             params = "";
         }
 
-        String classpath = task.getClasspath() + ";" +
-                ParametersUtils.fromArgs(params).getOrDefault("extraClasspath", "");
+        String classpath = buildClasspath(task);
+
         if (StringUtils.hasText(classpath)) {
             classpath = " -classpath \"" + classpath + "\" ";
         } else {
@@ -88,7 +100,7 @@ public class TaskUtils {
                 + " 2>&1 &";
         String cmd = "java -server -XX:OnOutOfMemoryError=kill "
                 + classpath
-                + TaskExecutorLauncher.class.getCanonicalName()
+                + TaskExecutorLauncher.class.getName()
                 + params + " "
                 + redirectOut;
         if (!isHostLocal(task.getHost())) {
@@ -102,6 +114,50 @@ public class TaskUtils {
         }
 
         return cmd;
+    }
+
+    private static String buildClasspath(TaskInfo task) {
+        String params = task.getParams();
+        if (!StringUtils.hasText(params)) {
+            params = "";
+        }
+
+        StringBuilder classpathBuilder = new StringBuilder();
+        String pankooClasspath = getPankooClasspath();
+        if (StringUtils.hasText(pankooClasspath)) {
+            classpathBuilder.append(pankooClasspath);
+        }
+        if (StringUtils.hasText(task.getClasspath())) {
+            if (StringUtils.hasText(classpathBuilder)) {
+                classpathBuilder.append(CLASSPATH_SPLIT);
+            }
+            classpathBuilder.append(task.getClasspath());
+        }
+        String extraClasspath =
+                ParametersUtils.fromArgs(params).getOrDefault("extraClasspath", "");
+        if (StringUtils.hasText(extraClasspath)) {
+            if (StringUtils.hasText(classpathBuilder)) {
+                classpathBuilder.append(CLASSPATH_SPLIT);
+            }
+            classpathBuilder.append(extraClasspath);
+        }
+        return classpathBuilder.toString();
+    }
+
+    private static String getPankooClasspath() {
+        // try {
+        //     return Files.list(Paths.get(".", "lib"))
+        //             .map(p -> p.toAbsolutePath().toString())
+        //             .collect(Collectors.joining(CLASSPATH_SPLIT));
+        // } catch (IOException e) {
+        //     return "";
+        // }
+
+        if (Files.exists( Paths.get(".", "lib"))) {
+            return Paths.get(".", "lib").toAbsolutePath().toString() + "/*";
+        } else {
+            return "";
+        }
     }
 
     public static String getTaskCmd(TaskInfo task, String taskRpcHost, int taskRpcPort) {

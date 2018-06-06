@@ -2,6 +2,7 @@ package com.timeyang.athena.task.exec;
 
 import com.timeyang.athena.AthenaConf;
 import com.timeyang.athena.task.TaskInfo;
+import com.timeyang.athena.utill.ThreadUtils;
 import com.timeyang.athena.utill.cmd.CmdUtils;
 import com.timeyang.athena.utill.SystemUtils;
 import org.slf4j.Logger;
@@ -29,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 public class LogManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(LogManager.class);
 
-    private ScheduledExecutorService executorService = Executors.newScheduledThreadPool(2);
+    private ScheduledExecutorService executorService = Executors.newScheduledThreadPool(2, ThreadUtils.createThreadFactory("LogManager"));
 
     public LogManager(AthenaConf athenaConf) {
 

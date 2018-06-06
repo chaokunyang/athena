@@ -7,7 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Optional;
 
 /**
  * @author https://github.com/chaokunyang
@@ -17,7 +16,13 @@ public class CmdUtils {
 
     public static Result exec(String cmd) {
         try {
-            Process process = Runtime.getRuntime().exec(cmd);
+            String[] commands;
+            if (SystemUtils.IS_WINDOWS) {
+                commands = new String[]{"cmd", "/c", cmd};
+            } else {
+                commands = new String[]{"bash", "-c", cmd};
+            }
+            Process process = Runtime.getRuntime().exec(commands);
             int code = process.waitFor();
             String procOutput = IoUtils.toString(process.getInputStream(), SystemUtils.ENCODING);
             String procError = IoUtils.toString(process.getErrorStream(), SystemUtils.ENCODING);
@@ -40,7 +45,7 @@ public class CmdUtils {
             }
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
-            return new Result(false, e);
+            return new Result(false, null, null);
         }
     }
 

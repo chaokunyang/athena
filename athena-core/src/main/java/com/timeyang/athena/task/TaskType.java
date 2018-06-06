@@ -5,6 +5,8 @@ import com.timeyang.athena.task.exec.TaskUtils;
 import com.timeyang.athena.utill.ClassUtils;
 import com.timeyang.athena.utill.SystemUtils;
 
+import java.nio.file.Paths;
+
 /**
  * Task type
  *
@@ -42,8 +44,11 @@ public enum TaskType {
                     + " --taskManagerPort " + taskRpcPort
                     + " " + task.getParams();
 
-            String cmd = "spark-submit --master yarn-client --class " + TaskExecutor.class.getCanonicalName() +
-                    " --jars " + SystemUtils.CLASSPATH.replaceAll(";", ",")
+            String files = Paths.get("./conf/athena.properties").toAbsolutePath().toString() +
+                    "," + Paths.get("./conf/athena-default.properties").toAbsolutePath();
+            String cmd = "spark-submit --master yarn-client --class " + TaskExecutor.class.getCanonicalName()
+                    + " --jars " + SystemUtils.CLASSPATH.replaceAll(";", ",")
+                    + " --files " + files
                     + " " + ClassUtils.findJar(TaskExecutor.class)
                     + " " + params;
             return cmd;
