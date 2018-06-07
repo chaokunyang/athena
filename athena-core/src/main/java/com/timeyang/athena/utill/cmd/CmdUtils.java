@@ -16,11 +16,11 @@ public class CmdUtils {
     private static final Logger LOGGER = LoggerFactory.getLogger(CmdUtils.class);
 
     public static Result exec(String cmd) {
-        cmd = String.format("'%s'", cmd);
         String[] commands;
         if (SystemUtils.IS_WINDOWS) {
             commands = new String[]{"cmd", "/c", cmd};
         } else {
+            cmd = String.format("'%s'", cmd); // for bash -c
             commands = new String[]{"bash", "-c", cmd};
         }
 
@@ -35,7 +35,7 @@ public class CmdUtils {
                 String msg = String.format("Execute command on other host in windows is not supported. host [%s], command [%s]", host, cmd);
                 throw new UnsupportedOperationException(msg);
             } else {
-                cmd = String.format("'%s'", cmd);
+                cmd = String.format("'%s'", cmd); // for bash -c
                 String[] commands = {"ssh", host, "bash", "-c", cmd};
                 return exec(commands);
             }

@@ -52,7 +52,7 @@ public class TaskUtils {
         String taskDir = getExecTaskDir(taskId);
         if (SystemUtils.IS_WINDOWS) {
             // must add brackets to "if not exist", or else following commands will bt treated as on command. No need for linux.
-            return String.format("cmd /c (if not exist %s mkdir %s)", taskDir, taskDir);
+            return String.format("(if not exist %s mkdir %s)", taskDir, taskDir);
         } else {
             // add '' to cmd to compose a cmd
             return String.format("test -d %s || mkdir -p %s", taskDir, taskDir);
