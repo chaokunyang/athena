@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
  * @author https://github.com/chaokunyang
@@ -20,7 +21,6 @@ public class CmdUtils {
         if (SystemUtils.IS_WINDOWS) {
             commands = new String[]{"cmd", "/c", cmd};
         } else {
-            cmd = String.format("'%s'", cmd); // for bash -c
             commands = new String[]{"bash", "-c", cmd};
         }
 
@@ -35,7 +35,7 @@ public class CmdUtils {
                 String msg = String.format("Execute command on other host in windows is not supported. host [%s], command [%s]", host, cmd);
                 throw new UnsupportedOperationException(msg);
             } else {
-                cmd = String.format("'%s'", cmd); // for bash -c
+                cmd = String.format("'%s'", cmd); // for bash -c in ssh
                 String[] commands = {"ssh", host, "bash", "-c", cmd};
                 return exec(commands);
             }
@@ -44,6 +44,7 @@ public class CmdUtils {
 
     private static Result exec(String[] commands) {
         try {
+            LOGGER.info("Execute: " + Arrays.toString(commands));
             Process process = Runtime.getRuntime().exec(commands);
             int code = process.waitFor();
             String procOutput = IoUtils.toString(process.getInputStream(), SystemUtils.ENCODING);
@@ -56,18 +57,18 @@ public class CmdUtils {
                     LOGGER.error("cmd error: " + procError);
                 }
 
-                return new Result(false, procOutput, procError);
+                return new Result(code, procOutput, procError);
             } else {
                 if (StringUtils.hasLength(procOutput))
                     LOGGER.info("cmd output: " + procOutput);
                 if (StringUtils.hasLength(procError)) {
                     LOGGER.info("cmd error: " + procError);
                 }
-                return new Result(true, procOutput, procError);
+                return new Result(code, procOutput, procError);
             }
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
-            return new Result(false, null, null);
+            return new Result(null, null, null);
         }
     }
 

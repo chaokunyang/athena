@@ -13,6 +13,11 @@ public abstract class TaskInfo {
     private TaskType taskType;
     private String host;
     /**
+     * <p>If host fixed, host must supplied by task submitter and changing host by taskScheduler is not allowed. Mainly for Daemon task.</p>
+     * <p>If not fixed, host is only an advised task execution host</p>
+     */
+    private boolean hostFixed;
+    /**
      * {@link com.timeyang.athena.task.exec.Task} className or <br/>
      * {@link com.timeyang.athena.task.exec.TaskFactory} className
      */
@@ -59,6 +64,14 @@ public abstract class TaskInfo {
 
     public void setHost(String host) {
         this.host = host;
+    }
+
+    public boolean isHostFixed() {
+        return hostFixed;
+    }
+
+    public void setHostFixed(boolean hostFixed) {
+        this.hostFixed = hostFixed;
     }
 
     public String getClassName() {
@@ -115,6 +128,7 @@ public abstract class TaskInfo {
                 ", taskName='" + taskName + '\'' +
                 ", taskType='" + taskType + '\'' +
                 ", host='" + host + '\'' +
+                ", hostFixed='" + hostFixed + '\'' +
                 ", className='" + className + '\'' +
                 ", classpath='" + classpath + '\'' +
                 ", params='" + params + '\'' +
@@ -138,6 +152,7 @@ public abstract class TaskInfo {
             super.setTaskName(task.getTaskName());
             super.setTaskType(task.getTaskType());
             super.setHost(task.getHost());
+            super.setHostFixed(task.isHostFixed());
             super.setClassName(task.getClassName());
             super.setClasspath(task.getClasspath());
             super.setParams(task.getParams());
@@ -193,6 +208,7 @@ public abstract class TaskInfo {
             super.setTaskName(task.getTaskName());
             super.setTaskType(task.getTaskType());
             super.setHost(task.getHost());
+            super.setHostFixed(task.isHostFixed());
             super.setClassName(task.getClassName());
             super.setClasspath(task.getClasspath());
             super.setParams(task.getParams());
@@ -206,6 +222,7 @@ public abstract class TaskInfo {
             super.setTaskName(task.getTaskName());
             super.setTaskType(task.getTaskType());
             super.setHost(task.getHost());
+            super.setHostFixed(task.isHostFixed());
             super.setClassName(task.getClassName());
             super.setClasspath(task.getClasspath());
             super.setParams(task.getParams());

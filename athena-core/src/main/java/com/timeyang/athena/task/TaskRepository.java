@@ -44,6 +44,7 @@ public class TaskRepository {
                 "task_name VARCHAR(100), " +
                 "task_type VARCHAR(100), " +
                 "host VARCHAR(100), " +
+                "host_fixed BOOLEAN, " +
                 "class_name VARCHAR(100), " +
                 "classpath VARCHAR(30000), " +
                 "params VARCHAR(10000), " +
@@ -57,6 +58,7 @@ public class TaskRepository {
                 "task_name VARCHAR(100), " +
                 "task_type VARCHAR(100), " +
                 "host VARCHAR(100), " +
+                "host_fixed BOOLEAN, " +
                 "class_name VARCHAR(100), " +
                 "classpath VARCHAR(30000), " +
                 "params VARCHAR(10000), " +
@@ -73,6 +75,7 @@ public class TaskRepository {
                 "task_name VARCHAR(100), " +
                 "task_type VARCHAR(100), " +
                 "host VARCHAR(100), " +
+                "host_fixed BOOLEAN, " +
                 "class_name VARCHAR(100), " +
                 "classpath VARCHAR(30000), " +
                 "params VARCHAR(10000), " +
@@ -104,8 +107,8 @@ public class TaskRepository {
     //************************ Waiting task ************************
     public TaskInfo create(TaskInfo task) {
         String sql = "INSERT INTO " + WAITING_TASK_TABLE +
-                "(task_name, host, class_name, params, max_tries, submit_time, classpath, retry_wait, task_type) " +
-                "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "(task_name, host, class_name, params, max_tries, submit_time, classpath, retry_wait, task_type, host_fixed) " +
+                "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection connection = this.dataSource.getConnection();
              PreparedStatement pStatement = connection.prepareStatement(sql, new String[]{"TASK_ID"})) {
             pStatement.setString(1, task.getTaskName());
@@ -117,6 +120,7 @@ public class TaskRepository {
             pStatement.setString(7, task.getClasspath());
             pStatement.setLong(8, task.getRetryWait());
             pStatement.setString(9, task.getTaskType().toString());
+            pStatement.setBoolean(10, task.isHostFixed());
 
             int affectedRows = pStatement.executeUpdate();
             if (affectedRows == 0) {
@@ -149,7 +153,7 @@ public class TaskRepository {
     }
 
     public PagedResult<WaitingTask> getWaitingTasks(Page page) {
-       return JdbcUtils.queryPage(dataSource, WAITING_TASK_TABLE, page, waitingTaskRowMapper);
+        return JdbcUtils.queryPage(dataSource, WAITING_TASK_TABLE, page, waitingTaskRowMapper);
     }
 
     public List<WaitingTask> getAllWaitingTasks() {
@@ -193,8 +197,8 @@ public class TaskRepository {
             statement.execute(deleteWaitingTaskSql);
 
             String createRunningTaskSql = "INSERT INTO " + RUNNING_TASK_TABLE +
-                    "(task_id, task_name, host, class_name, params, max_tries, submit_time, start_time, try_number, pid, classpath, retry_wait, task_type) " +
-                    "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    "(task_id, task_name, host, class_name, params, max_tries, submit_time, start_time, try_number, pid, classpath, retry_wait, task_type, host_fixed) " +
+                    "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             PreparedStatement pStatement = connection.prepareStatement(createRunningTaskSql);
             pStatement.setLong(1, task.getTaskId());
             pStatement.setString(2, task.getTaskName());
@@ -209,6 +213,7 @@ public class TaskRepository {
             pStatement.setString(11, task.getClasspath());
             pStatement.setLong(12, task.getRetryWait());
             pStatement.setString(13, task.getTaskType().toString());
+            pStatement.setBoolean(14, task.isHostFixed());
 
             pStatement.execute();
 
@@ -225,7 +230,7 @@ public class TaskRepository {
                 "SET try_number = ?, pid = ? " +
                 "WHERE task_id = ?";
         try (Connection connection = this.dataSource.getConnection();
-             PreparedStatement pStatement = connection.prepareStatement(sql, new String[]{"TASK_ID"})) {
+             PreparedStatement pStatement = connection.prepareStatement(sql)) {
             pStatement.setInt(1, task.getTryNumber());
             pStatement.setInt(2, task.getPid());
             pStatement.setLong(3, task.getTaskId());
@@ -272,8 +277,8 @@ public class TaskRepository {
             statement.execute(deleteRunningTaskSql);
 
             String createFinishedTaskSql = "INSERT INTO " + FINISHED_TASK_TABLE +
-                    "(task_id, task_name, host, class_name, params, max_tries,submit_time,  state, try_number, classpath, retry_wait, task_type) " +
-                    "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    "(task_id, task_name, host, class_name, params, max_tries,submit_time,  state, try_number, classpath, retry_wait, task_type, host_fixed) " +
+                    "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             PreparedStatement pStatement = connection.prepareStatement(createFinishedTaskSql);
             pStatement.setLong(1, task.getTaskId());
             pStatement.setString(2, task.getTaskName());
@@ -287,6 +292,7 @@ public class TaskRepository {
             pStatement.setString(10, task.getClasspath());
             pStatement.setLong(11, task.getRetryWait());
             pStatement.setString(12, task.getTaskType().toString());
+            pStatement.setBoolean(13, task.isHostFixed());
 
             pStatement.execute();
             connection.commit();
@@ -310,8 +316,8 @@ public class TaskRepository {
             statement.execute(deleteRunningTaskSql);
 
             String createFinishedTaskSql = "INSERT INTO " + FINISHED_TASK_TABLE +
-                    "(task_id, task_name, host, class_name, params, max_tries, submit_time, start_time, end_time, duration, state, try_number, classpath, retry_wait, task_type) " +
-                    "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    "(task_id, task_name, host, class_name, params, max_tries, submit_time, start_time, end_time, duration, state, try_number, classpath, retry_wait, task_type, host_fixed) " +
+                    "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             PreparedStatement pStatement = connection.prepareStatement(createFinishedTaskSql);
             pStatement.setLong(1, task.getTaskId());
             pStatement.setString(2, task.getTaskName());
@@ -328,6 +334,7 @@ public class TaskRepository {
             pStatement.setString(13, task.getClasspath());
             pStatement.setLong(14, task.getRetryWait());
             pStatement.setString(15, task.getTaskType().toString());
+            pStatement.setBoolean(16, task.isHostFixed());
 
             pStatement.execute();
             connection.commit();
@@ -385,6 +392,7 @@ public class TaskRepository {
         task.setTaskName(rs.getString("task_name"));
         task.setTaskType(TaskType.valueOf(rs.getString("task_type")));
         task.setHost(rs.getString("host"));
+        task.setHostFixed(rs.getBoolean("host_fixed"));
         task.setClassName(rs.getString("class_name"));
         task.setClasspath(rs.getString("classpath"));
         task.setParams(rs.getString("params"));
@@ -401,6 +409,7 @@ public class TaskRepository {
         task.setTaskName(rs.getString("task_name"));
         task.setTaskType(TaskType.valueOf(rs.getString("task_type")));
         task.setHost(rs.getString("host"));
+        task.setHostFixed(rs.getBoolean("host_fixed"));
         task.setClassName(rs.getString("class_name"));
         task.setClasspath(rs.getString("classpath"));
         task.setParams(rs.getString("params"));
@@ -420,6 +429,7 @@ public class TaskRepository {
         task.setTaskName(rs.getString("task_name"));
         task.setTaskType(TaskType.valueOf(rs.getString("task_type")));
         task.setHost(rs.getString("host"));
+        task.setHostFixed(rs.getBoolean("host_fixed"));
         task.setClassName(rs.getString("class_name"));
         task.setClasspath(rs.getString("classpath"));
         task.setParams(rs.getString("params"));
@@ -440,5 +450,23 @@ public class TaskRepository {
 
         return task;
     };
+
+    public void updateTaskHost(Long taskId, String host) {
+        try (Connection connection = dataSource.getConnection();
+             Statement statement = connection.createStatement()) {
+            String sql = String.format("SELECT task_id from %s where task_id = %s", WAITING_TASK_TABLE, taskId);
+            List<Long> taskIds = JdbcUtils.query(connection, sql, (rs, rowNum) -> rs.getLong("task_id"));
+            if (!taskIds.isEmpty()) { // task is in waiting_task
+                String uSql = String.format("UPDATE %s SET host = '%s' WHERE task_id = %s", WAITING_TASK_TABLE, host, taskId);
+                statement.executeUpdate(uSql);
+            } else { // task is in running_task
+                String uSql = String.format("UPDATE %s SET host = '%s' WHERE task_id = %s", RUNNING_TASK_TABLE, host, taskId);
+                statement.executeUpdate(uSql);
+            }
+
+        } catch (SQLException e) {
+           LOGGER.error("Update task {} execute host to {} failed", taskId, host, e);
+        }
+    }
 
 }

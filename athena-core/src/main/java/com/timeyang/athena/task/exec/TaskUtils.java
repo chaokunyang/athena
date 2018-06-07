@@ -5,6 +5,8 @@ import com.timeyang.athena.task.TaskInfo;
 import com.timeyang.athena.utill.ParametersUtils;
 import com.timeyang.athena.utill.StringUtils;
 import com.timeyang.athena.utill.SystemUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -15,6 +17,7 @@ import java.util.Map;
  * @author https://github.com/chaokunyang
  */
 public class TaskUtils {
+    private static final Logger LOGGER = LoggerFactory.getLogger(TaskUtils.class);
     private static final AthenaConf athenaConf = AthenaConf.getConf();
     private static final String DEFAULT_TASK_EXEC_DIR_NAME = ".tasks";
     private static final String DEFAULT_TASKS_DIR_PATH = getDefaultTasksDir();
@@ -188,8 +191,11 @@ public class TaskUtils {
             } else {
                 return Task.class.cast(o);
             }
-        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
-            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            LOGGER.error("Can't find task class {}, mark task failed", className, e);
+            throw new RuntimeException(e);
+        } catch (InstantiationException | IllegalAccessException e) {
+            LOGGER.error("can't instantiate task class, mark task failed", e);
             throw new RuntimeException(e);
         }
     }

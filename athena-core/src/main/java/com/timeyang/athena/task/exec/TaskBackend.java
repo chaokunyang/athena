@@ -118,7 +118,10 @@ public class TaskBackend {
         bossGroup.shutdownGracefully();
     }
 
-    public void runTask(TaskInfo taskInfo) {
+    /**
+     * @return true if task_cmd executed successfully
+     */
+    public boolean runTask(TaskInfo taskInfo) {
         Long taskId = taskInfo.getTaskId();
         LOGGER.debug("starting tasks: " + startingTaskIds);
         // start task if not started
@@ -127,43 +130,46 @@ public class TaskBackend {
                 startingTaskIds.add(taskId);
             } else {
                 LOGGER.debug("task [{}] is starting, won't run it repeatedly", taskId);
-                return;
+                return false;
             }
         }
 
         String className = taskInfo.getClassName();
-        Task task = TaskUtils.createTask(className, ParametersUtils.fromArgs(taskInfo.getParams()).get());
+        Task task;
+        try {
+            task = TaskUtils.createTask(className, ParametersUtils.fromArgs(taskInfo.getParams()).get());
+        } catch (RuntimeException e) {
+            LOGGER.error("Create task [{}] failed, move task to finished", taskId);
+            taskCallback.onFailure(taskId);
+            startingTaskIds.remove(taskId);
+            taskInstances.remove(taskId);
+            return false;
+        }
         taskInstances.put(taskId, task);
 
         LOGGER.info("init task [{}]", taskId);
         task.init(TaskContextImpl.makeTaskContext(taskId));
 
         String taskCmd = TaskUtils.getTaskCmd(taskInfo, host, port);
-        try {
-            LOGGER.info("Starting task. task_start_cmd: [{}]", taskCmd);
-            Result exec = CmdUtils.exec(taskInfo.getHost(), taskCmd);
-            if (StringUtils.hasLength(exec.getOut()))
-                LOGGER.info("task cmd output: " + exec.getOut());
-            if (StringUtils.hasLength(exec.getError())) {
-                LOGGER.warn("task error output: " + exec.getError());
-            }
-            LOGGER.info("task_start_cmd of task [{}] executed", taskId);
-        } catch (Exception e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof ClassNotFoundException) {
-                LOGGER.error("Can't find task class {}, mark task failed", className, cause);
-            }
-            if (cause instanceof IllegalAccessException || cause instanceof InstantiationException) {
-                LOGGER.error("can't instantiate task class, mark task failed", cause);
-            }
-            if (cause instanceof IOException || cause instanceof InterruptedException) {
-                LOGGER.error("Execute task_cmd failed. task_cmd [{}]", taskCmd, cause);
-            }
+        LOGGER.info("Starting task. task_start_cmd: [{}]", taskCmd);
+        Result exec = CmdUtils.exec(taskInfo.getHost(), taskCmd);
+        if (StringUtils.hasLength(exec.getOut()))
+            LOGGER.info("task cmd output: " + exec.getOut());
+        if (StringUtils.hasLength(exec.getError())) {
+            LOGGER.warn("task error output: " + exec.getError());
+        }
+
+        if (exec.isSucceed()) {
+            LOGGER.info("task_start_cmd of task [{}] executed, exit code {}", taskId, exec.getExitCode());
+        } else {
+            LOGGER.error("Execute task_cmd [{}] failed, exit code {}. Move task to finished", taskCmd, exec.getExitCode());
 
             taskCallback.onFailure(taskId);
             startingTaskIds.remove(taskId);
             taskInstances.remove(taskId);
         }
+
+        return true;
     }
 
     public Future killTask(long taskId, Runnable runnable) {
@@ -174,6 +180,10 @@ public class TaskBackend {
             runnable.run();
         });
         return channelFuture;
+    }
+
+    public boolean isTaskStarting(long taskId) {
+        return startingTaskIds.contains(taskId);
     }
 
     public boolean isTaskRunning(long taskId) {

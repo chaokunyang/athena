@@ -6,24 +6,28 @@ import java.io.Serializable;
  * @author https://github.com/chaokunyang
  */
 public class Result implements Serializable {
-    private boolean succeed;
+    private Integer exitCode;
     private String out;
     private String error;
     private Throwable throwable;
 
-    Result(boolean succeed, Throwable throwable) {
-        this.succeed = succeed;
+    Result(Integer exitCode, Throwable throwable) {
+        this.exitCode = exitCode;
         this.throwable = throwable;
     }
 
-    Result(boolean succeed, String out, String error) {
-        this.succeed = succeed;
+    Result(Integer exitCode, String out, String error) {
+        this.exitCode = exitCode;
         this.out = out;
         this.error = error;
     }
 
+    public Integer getExitCode() {
+        return exitCode;
+    }
+
     public boolean isSucceed() {
-        return succeed;
+        return exitCode != null && exitCode == 0;
     }
 
     public String getOut() {
@@ -41,7 +45,8 @@ public class Result implements Serializable {
     @Override
     public String toString() {
         return "Result{" +
-                "succeed=" + succeed +
+                "exitCode=" + exitCode +
+                ", succeed=" + isSucceed() +
                 ", out='" + out + '\'' +
                 ", error='" + error + '\'' +
                 ", throwable=" + throwable +
