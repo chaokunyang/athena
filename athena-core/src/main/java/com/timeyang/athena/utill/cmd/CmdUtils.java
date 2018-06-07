@@ -1,6 +1,7 @@
 package com.timeyang.athena.utill.cmd;
 
 import com.timeyang.athena.utill.IoUtils;
+import com.timeyang.athena.utill.NetworkUtils;
 import com.timeyang.athena.utill.StringUtils;
 import com.timeyang.athena.utill.SystemUtils;
 import org.slf4j.Logger;
@@ -15,13 +16,34 @@ public class CmdUtils {
     private static final Logger LOGGER = LoggerFactory.getLogger(CmdUtils.class);
 
     public static Result exec(String cmd) {
-        try {
-            String[] commands;
+        cmd = String.format("'%s'", cmd);
+        String[] commands;
+        if (SystemUtils.IS_WINDOWS) {
+            commands = new String[]{"cmd", "/c", cmd};
+        } else {
+            commands = new String[]{"bash", "-c", cmd};
+        }
+
+        return exec(commands);
+    }
+
+    public static Result exec(String host, String cmd) {
+        if (NetworkUtils.isHostLocal(host)) {
+            return exec(cmd);
+        } else {
             if (SystemUtils.IS_WINDOWS) {
-                commands = new String[]{"cmd", "/c", cmd};
+                String msg = String.format("Execute command on other host in windows is not supported. host [%s], command [%s]", host, cmd);
+                throw new UnsupportedOperationException(msg);
             } else {
-                commands = new String[]{"bash", "-c", cmd};
+                cmd = String.format("'%s'", cmd);
+                String[] commands = {"ssh", host, "bash", "-c", cmd};
+                return exec(commands);
             }
+        }
+    }
+
+    private static Result exec(String[] commands) {
+        try {
             Process process = Runtime.getRuntime().exec(commands);
             int code = process.waitFor();
             String procOutput = IoUtils.toString(process.getInputStream(), SystemUtils.ENCODING);

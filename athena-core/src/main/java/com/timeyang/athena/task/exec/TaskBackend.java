@@ -141,7 +141,7 @@ public class TaskBackend {
         String taskCmd = TaskUtils.getTaskCmd(taskInfo, host, port);
         try {
             LOGGER.info("Starting task. task_start_cmd: [{}]", taskCmd);
-            Result exec = CmdUtils.exec(taskCmd);
+            Result exec = CmdUtils.exec(taskInfo.getHost(), taskCmd);
             if (StringUtils.hasLength(exec.getOut()))
                 LOGGER.info("task cmd output: " + exec.getOut());
             if (StringUtils.hasLength(exec.getError())) {

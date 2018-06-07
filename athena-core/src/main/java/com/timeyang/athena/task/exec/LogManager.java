@@ -2,6 +2,7 @@ package com.timeyang.athena.task.exec;
 
 import com.timeyang.athena.AthenaConf;
 import com.timeyang.athena.task.TaskInfo;
+import com.timeyang.athena.utill.NetworkUtils;
 import com.timeyang.athena.utill.ThreadUtils;
 import com.timeyang.athena.utill.cmd.CmdUtils;
 import com.timeyang.athena.utill.SystemUtils;
@@ -55,7 +56,7 @@ public class LogManager {
             e.printStackTrace();
         }
 
-        if (TaskUtils.isHostLocal(taskInfo.getHost())) {
+        if (NetworkUtils.isHostLocal(taskInfo.getHost())) {
             try {
                 Files.move(remoteLogFilePath, taskLogSavePath, StandardCopyOption.REPLACE_EXISTING);
                 LOGGER.info("task [{}] log collected", taskId);

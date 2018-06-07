@@ -87,9 +87,6 @@ public class TaskUtils {
                 + TaskExecutorLauncher.class.getName()
                 + params + " "
                 + redirectOut;
-        if (!isHostLocal(task.getHost())) {
-            cmd = "ssh " + task.getHost() + " '" + cmd + "'";
-        }
         if (SystemUtils.IS_WINDOWS) {
             cmd = cmd.replaceAll("/", "\\\\");
         }
@@ -163,13 +160,6 @@ public class TaskUtils {
             p = new File(p).getAbsolutePath();
         }
         return p;
-    }
-
-    public static boolean isHostLocal(String host) {
-        return  "localhost".equalsIgnoreCase(host) ||
-                "127.0.0.1".equalsIgnoreCase(host) ||
-                SystemUtils.HOSTNAME.equalsIgnoreCase(host) ||
-                SystemUtils.LOCAL_ADDRESSES.contains(host);
     }
 
     public static String getRemoteTaskLogFilePath(long taskId) {
