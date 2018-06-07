@@ -39,6 +39,18 @@ public class AthenaConf {
         return this.settings.get(key);
     }
 
+    public Integer getInt(String key) {
+        return Integer.valueOf(this.settings.get(key));
+    }
+
+    public Long getILong(String key) {
+        return Long.valueOf(this.settings.get(key));
+    }
+
+    public boolean getBoolean(String key) {
+        return Boolean.valueOf(this.settings.get(key));
+    }
+
     public String getWebHostname() {
         return this.settings.get("web.hostname");
     }

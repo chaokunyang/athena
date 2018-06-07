@@ -77,15 +77,19 @@ public class Athena {
     }
 
     private void initDb() {
-        HikariDataSource ds = new HikariDataSource();
+        HikariConfig config = new HikariConfig();
         LOGGER.info("JDBC: {}", conf.getJdbcUrl());
-        ds.setJdbcUrl(conf.getJdbcUrl());
+        config.setJdbcUrl(conf.getJdbcUrl());
         if (StringUtils.hasText(conf.getJdbcUsername()))
-            ds.setUsername(conf.getJdbcUsername());
+            config.setUsername(conf.getJdbcUsername());
         if (StringUtils.hasText(conf.getJdbcPassword()))
-            ds.setPassword(conf.getJdbcPassword());
-        ds.setMaximumPoolSize(20);
-        dataSource = ds;
+            config.setPassword(conf.getJdbcPassword());
+        config.setMinimumIdle(conf.getInt("db.minimumIdle"));
+        config.setMaximumPoolSize(conf.getInt("db.maximumPoolSize"));
+        config.setIdleTimeout(conf.getILong("db.idleTimeout"));
+        config.setLeakDetectionThreshold(conf.getILong("db.leakDetectionThreshold"));
+        config.setRegisterMbeans(conf.getBoolean("jmx.enable"));
+        dataSource = new HikariDataSource(config);
     }
 
     private void initHiveDataSource() {
