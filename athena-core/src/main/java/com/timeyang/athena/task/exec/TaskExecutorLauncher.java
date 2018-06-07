@@ -1,6 +1,9 @@
 package com.timeyang.athena.task.exec;
 
-import com.timeyang.athena.utill.*;
+import com.timeyang.athena.utill.ClassLoaderUtils;
+import com.timeyang.athena.utill.IoUtils;
+import com.timeyang.athena.utill.ParametersUtils;
+import com.timeyang.athena.utill.ReflectionUtils;
 
 import java.io.*;
 import java.lang.reflect.Constructor;
@@ -22,10 +25,10 @@ import java.util.stream.Collectors;
  * TaskExecutor inspired by {@code org.apache.spark.executor.CoarseGrainedExecutorBackend}
  * <p>Download jars, set up URLClassLoader ...</p>
  *
- * @author yangck
+ * @author https://github.com/chaokunyang
  */
 public class TaskExecutorLauncher {
-    private static final String TASK_EXECUTOR_NAME = "com.qjzh.pankoo.task.exec.TaskExecutor";
+    private static final String TASK_EXECUTOR_NAME = "com.timeyang.athena.task.exec.TaskExecutor";
     private static final DateTimeFormatter FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
     /**
@@ -43,7 +46,7 @@ public class TaskExecutorLauncher {
                 String[] splits = extraClasspathStr.split("[;,:]");
                 for (String split : splits) {
                     if (split.endsWith("*")) {
-                        Files.list(Paths.get(split).getParent())
+                        Files.list(Paths.get(split.substring(0, split.length() - 1)))
                                 .map(p -> p.toAbsolutePath().toString())
                                 .forEach(classpath::add);
                     } else {
@@ -133,7 +136,14 @@ public class TaskExecutorLauncher {
 
     private static List<String> getHadoopClasspath() {
         try {
-            Process process = Runtime.getRuntime().exec("hadoop classpath");
+            String[] commands;
+            String cmd = "hadoop classpath";
+            if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS")) {
+                commands = new String[]{"cmd", "/c", cmd};
+            } else {
+                commands = new String[]{"bash", "-c", cmd};
+            }
+            Process process = Runtime.getRuntime().exec(commands);
             process.waitFor();
             final int bufferSize = 1024;
             final char[] buffer = new char[bufferSize];
@@ -157,7 +167,7 @@ public class TaskExecutorLauncher {
                 String[] splits = sb.toString().split("[:,;]");
                 for (String split : splits) {
                     if (split.endsWith("*")) {
-                        Files.list(Paths.get(split).getParent())
+                        Files.list(Paths.get(split.substring(0, split.length() - 1)))
                                 .map(p -> p.toAbsolutePath().toString())
                                 .forEach(hcp::add);
                     } else {
@@ -178,7 +188,7 @@ public class TaskExecutorLauncher {
                 }
             }
         } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
+            // e.printStackTrace();
             return Collections.emptyList();
         }
     }

@@ -21,9 +21,10 @@ public class JdbcUtils {
         List<String> tables = new ArrayList<>();
         try {
             DatabaseMetaData md = connection.getMetaData();
-            ResultSet rs = md.getTables(null, null, "%", null);
-            while (rs.next()) {
-                tables.add(rs.getString(3));
+            try (ResultSet rs = md.getTables(null, null, "%", null)) {
+                while (rs.next()) {
+                    tables.add(rs.getString(3));
+                }
             }
         } catch (SQLException e) {
             LOGGER.error("Can't get all tables", e);
@@ -77,9 +78,8 @@ public class JdbcUtils {
     }
 
     public static <T> List<T> query(Connection connection, String sql, RowMapper<T> rowMapper) {
-        try (Statement statement = connection.createStatement()) {
-            ResultSet rs = statement.executeQuery(sql);
-
+        try (Statement statement = connection.createStatement();
+             ResultSet rs = statement.executeQuery(sql)) {
             List<T> results = new ArrayList<>();
             while (rs.next()) {
                 int row = -1;
@@ -88,12 +88,10 @@ public class JdbcUtils {
                 } catch (SQLException ignored) {}
                 results.add(rowMapper.mapRow(rs, row));
             }
-            rs.close();
 
             return results;
         } catch (SQLException e) {
-            LOGGER.error("Execute sql failed, sql: " + sql);
-            e.printStackTrace();
+            LOGGER.error(e.getMessage(), e);
             throw new AthenaException("Execute sql failed, sql: " + sql, e);
         }
     }
@@ -102,7 +100,7 @@ public class JdbcUtils {
         try (Connection connection = dataSource.getConnection()) {
             return query(connection, sql, rowMapper);
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage(), e);
             throw new AthenaException("Can't get connection", e);
         }
     }
@@ -118,17 +116,16 @@ public class JdbcUtils {
         String sql = String.format("select * from %s %s %s offset %d ROWS FETCH NEXT %d ROWS ONLY",
                 tableName, whereClause, orderByClause, offset, page.getSize());
         try (Connection connection = dataSource.getConnection();
-                Statement statement = connection.createStatement()) {
-            List<T> tables = query(connection, sql, rowMapper);
+             Statement statement = connection.createStatement();
+             ResultSet countRs = statement.executeQuery("SELECT COUNT(*) AS total FROM " + tableName)) {
+            List<T> items = query(connection, sql, rowMapper);
 
-            ResultSet countRs = statement.executeQuery("SELECT COUNT(*) AS total FROM " + tableName);
             long total = 0;
-            while(countRs.next())
+            while (countRs.next())
                 total = countRs.getLong("total");
 
-            return new PagedResult<>(tables, total, page);
+            return new PagedResult<>(items, total, page);
         } catch (SQLException e) {
-            e.printStackTrace();
             String msg = String.format("Can't execute %s, sql: %s", tableName, sql);
             throw new AthenaException(msg, e);
         }

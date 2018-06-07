@@ -30,12 +30,7 @@ public class TaskUtils {
     }
 
     private static String getDefaultTasksDir() {
-        String dir = String.format("%s/%s", SystemUtils.WORK_DIR, DEFAULT_TASK_EXEC_DIR_NAME);
-        if (SystemUtils.IS_WINDOWS) {
-            return dir.replaceAll("/", "\\\\");
-        } else {
-            return dir;
-        }
+        return Paths.get( SystemUtils.WORK_DIR, DEFAULT_TASK_EXEC_DIR_NAME).toAbsolutePath().toString();
     }
 
     public static String getTasksDir() {
@@ -43,25 +38,14 @@ public class TaskUtils {
 
         if (tasksDir == null) {
             tasksDir = DEFAULT_TASKS_DIR_PATH;
-        } else {
-            if (SystemUtils.IS_WINDOWS) {
-                tasksDir = tasksDir.replaceAll("/", "\\\\");
-            }
-            tasksDir = new File(tasksDir).getAbsolutePath();
         }
 
-        return tasksDir;
+        return Paths.get(tasksDir).toAbsolutePath().toString();
     }
 
     public static String getExecTaskDir(long taskId) {
         String tasksDir = getTasksDir();
-
-        String dir = String.format("%s/%d", tasksDir, taskId);
-        if (SystemUtils.IS_WINDOWS) {
-            return dir.replaceAll("/", "\\\\");
-        } else {
-            return dir;
-        }
+        return Paths.get(tasksDir, String.valueOf(taskId)).toAbsolutePath().toString();
     }
 
     public static String getTaskInitCmd(long taskId) {
@@ -123,9 +107,9 @@ public class TaskUtils {
         }
 
         StringBuilder classpathBuilder = new StringBuilder();
-        String pankooClasspath = getPankooClasspath();
-        if (StringUtils.hasText(pankooClasspath)) {
-            classpathBuilder.append(pankooClasspath);
+        String athenaClasspath = getAthenaClasspath();
+        if (StringUtils.hasText(athenaClasspath)) {
+            classpathBuilder.append(athenaClasspath);
         }
         if (StringUtils.hasText(task.getClasspath())) {
             if (StringUtils.hasText(classpathBuilder)) {
@@ -144,7 +128,7 @@ public class TaskUtils {
         return classpathBuilder.toString();
     }
 
-    private static String getPankooClasspath() {
+    private static String getAthenaClasspath() {
         // try {
         //     return Files.list(Paths.get(".", "lib"))
         //             .map(p -> p.toAbsolutePath().toString())

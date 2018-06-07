@@ -6,7 +6,7 @@ import com.timeyang.athena.task.exec.TaskFactory;
 import java.util.Map;
 
 /**
- * @author yangck
+ * @author https://github.com/chaokunyang
  */
 public class TestTaskFactory implements TaskFactory {
     @Override

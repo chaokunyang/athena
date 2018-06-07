@@ -10,6 +10,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -39,16 +40,17 @@ public class TaskManagerTest {
                     .collect(Collectors.joining(";"));
             System.out.println(athenaClasspath);
 
-            String classpathFilePath = TaskUtils.getTasksDir()
-                    + "/classpathFile" + System.currentTimeMillis();
-            if (SystemUtils.IS_WINDOWS)
-                classpathFilePath = classpathFilePath.replaceAll("/", "\\\\");
+            String classpathFilePath = Paths
+                    .get(TaskUtils.getTasksDir(), "classpathFile", String.valueOf(System.currentTimeMillis()))
+                    .toAbsolutePath()
+                    .toString();
 
             File classpathFile = new File(classpathFilePath);
             if (!classpathFile.getParentFile().exists()) {
                 classpathFile.getParentFile().mkdirs();
             }
             IoUtils.writeFile(classpath, classpathFile);
+            System.out.println("classpathFilePath: " + classpathFilePath);
             String params = "--classpathFile " + classpathFilePath;
 
             if (i == 2) {

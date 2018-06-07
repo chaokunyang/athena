@@ -4,7 +4,7 @@ import com.timeyang.athena.task.exec.Task;
 import com.timeyang.athena.task.exec.TaskContext;
 
 /**
- * @author yangck
+ * @author https://github.com/chaokunyang
  */
 public class TestTask implements Task {
 

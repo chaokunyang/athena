@@ -6,7 +6,6 @@ import com.timeyang.athena.task.TaskManager;
 import com.timeyang.athena.utill.jdbc.Page;
 import com.timeyang.athena.utill.jdbc.PagedResult;
 
-import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -16,7 +15,7 @@ import static com.timeyang.athena.task.TaskInfo.FinishedTask;
 import static com.timeyang.athena.task.TaskInfo.RunningTask;
 
 /**
- * @author yangck
+ * @author https://github.com/chaokunyang
  */
 @Path("/task")
 public class TaskEndpoint {

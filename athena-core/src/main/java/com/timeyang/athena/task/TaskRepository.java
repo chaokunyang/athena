@@ -129,8 +129,9 @@ public class TaskRepository {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
-            throw new AthenaException("Can't create waiting task, sql: " + sql, e);
+            String msg = String.format("Can't create waiting task [%s], sql: %s", task, sql);
+            LOGGER.error(msg, e);
+            throw new AthenaException(msg, e);
         }
 
         return task;
@@ -214,22 +215,8 @@ public class TaskRepository {
             connection.commit();
         } catch (SQLException e) {
             LOGGER.error("Move waiting task to running failed. task: " + task, e);
-
-            if (statement != null) {
-                try {
-                    statement.close();
-                } catch (SQLException e1) {
-                    e1.printStackTrace();
-                }
-            }
-
-            if (connection != null) {
-                try {
-                    connection.rollback();
-                } catch (SQLException e1) {
-                    e1.printStackTrace();
-                }
-            }
+        } finally {
+            close(connection, statement);
         }
     }
 
@@ -245,7 +232,7 @@ public class TaskRepository {
 
             pStatement.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage(), e);
             throw new AthenaException("Can't create waiting task, sql: " + sql, e);
         }
     }
@@ -305,22 +292,8 @@ public class TaskRepository {
             connection.commit();
         } catch (SQLException e) {
             LOGGER.error("Move waiting task to finished failed. task: " + task, e);
-
-            if (statement != null) {
-                try {
-                    statement.close();
-                } catch (SQLException e1) {
-                    e1.printStackTrace();
-                }
-            }
-
-            if (connection != null) {
-                try {
-                    connection.rollback();
-                } catch (SQLException e1) {
-                    e1.printStackTrace();
-                }
-            }
+        } finally {
+            close(connection, statement);
         }
     }
 
@@ -360,21 +333,26 @@ public class TaskRepository {
             connection.commit();
         } catch (SQLException e) {
             LOGGER.error("Move running task to finished failed. task: " + task, e);
+        } finally {
+            close(connection, statement);
+        }
+    }
 
-            if (statement != null) {
-                try {
-                    statement.close();
-                } catch (SQLException e1) {
-                    e1.printStackTrace();
-                }
+    private void close(Connection connection, Statement statement) {
+        if (statement != null) {
+            try {
+                statement.close();
+            } catch (SQLException e) {
+                LOGGER.error(e.getMessage(), e);
             }
+        }
 
-            if (connection != null) {
-                try {
-                    connection.rollback();
-                } catch (SQLException e1) {
-                    e1.printStackTrace();
-                }
+        if (connection != null) {
+            try {
+                connection.rollback();
+                connection.close();
+            } catch (SQLException e) {
+                LOGGER.error(e.getMessage(), e);
             }
         }
     }
@@ -417,27 +395,6 @@ public class TaskRepository {
         return task;
     };
 
-    private RowMapper<FinishedTask> finishedTaskRowMapper = (rs, rowNum) -> {
-        FinishedTask task = new FinishedTask();
-        task.setTaskId(rs.getLong("task_id"));
-        task.setTaskName(rs.getString("task_name"));
-        task.setTaskType(TaskType.valueOf(rs.getString("task_type")));
-        task.setHost(rs.getString("host"));
-        task.setClassName(rs.getString("class_name"));
-        task.setClasspath(rs.getString("classpath"));
-        task.setParams(rs.getString("params"));
-        task.setMaxTries(rs.getInt("max_tries"));
-        task.setRetryWait(rs.getLong("retry_wait"));
-        task.setSubmitTime(rs.getTimestamp("submit_time").toInstant());
-        task.setStartTime(rs.getTimestamp("start_time").toInstant());
-        task.setDuration(Duration.ofSeconds(rs.getLong("duration")));
-        task.setEndTime(rs.getTimestamp("end_time").toInstant());
-        task.setState(TaskState.valueOf(rs.getString("state")));
-        task.setTryNumber(rs.getInt("try_number"));
-
-        return task;
-    };
-
     private RowMapper<RunningTask> runningTaskRowMapper = (rs, rowNum) -> {
         RunningTask task = new RunningTask();
         task.setTaskId(rs.getLong("task_id"));
@@ -453,6 +410,33 @@ public class TaskRepository {
         task.setStartTime(rs.getTimestamp("start_time").toInstant());
         task.setTryNumber(rs.getInt("try_number"));
         task.setPid(rs.getInt("pid"));
+
+        return task;
+    };
+
+    private RowMapper<FinishedTask> finishedTaskRowMapper = (rs, rowNum) -> {
+        FinishedTask task = new FinishedTask();
+        task.setTaskId(rs.getLong("task_id"));
+        task.setTaskName(rs.getString("task_name"));
+        task.setTaskType(TaskType.valueOf(rs.getString("task_type")));
+        task.setHost(rs.getString("host"));
+        task.setClassName(rs.getString("class_name"));
+        task.setClasspath(rs.getString("classpath"));
+        task.setParams(rs.getString("params"));
+        task.setMaxTries(rs.getInt("max_tries"));
+        task.setRetryWait(rs.getLong("retry_wait"));
+        task.setSubmitTime(rs.getTimestamp("submit_time").toInstant());
+
+        Timestamp startTime = rs.getTimestamp("start_time");
+        if (startTime != null)
+            task.setStartTime(startTime.toInstant());
+        task.setDuration(Duration.ofSeconds(rs.getLong("duration")));
+        Timestamp endTime = rs.getTimestamp("end_time");
+        if (endTime != null) {
+            task.setEndTime(endTime.toInstant());
+        }
+        task.setState(TaskState.valueOf(rs.getString("state")));
+        task.setTryNumber(rs.getInt("try_number"));
 
         return task;
     };
