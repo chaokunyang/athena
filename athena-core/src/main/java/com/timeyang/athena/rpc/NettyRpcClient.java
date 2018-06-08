@@ -11,25 +11,34 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.serialization.ClassResolvers;
 import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author https://github.com/chaokunyang
  */
 public class NettyRpcClient {
+    private static final Logger LOGGER = LoggerFactory.getLogger(NettyRpcClient.class);
     private final String host;
     private final int port;
-    private final EventLoopGroup group;
-    private final Class<? extends SocketChannel> channelClass;
     private final Bootstrap b;
     private Channel channel;
     private Serializable response;
+    private final Lock lock = new ReentrantLock();
+    private final Condition notFull  = lock.newCondition();
+    private final Condition notEmpty = lock.newCondition();
 
     public NettyRpcClient(String host, int port) {
         this.host = host;
         this.port = port;
 
+        EventLoopGroup group;
+        Class<? extends SocketChannel> channelClass;
         if (SystemUtils.IS_LINUX) {
             group = new EpollEventLoopGroup();
             channelClass = EpollSocketChannel.class;
@@ -53,39 +62,56 @@ public class NettyRpcClient {
     }
 
     public void start() {
-        try {
-            channel = b.connect(host, port).sync().channel();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
+        channel = b.connect(host, port).syncUninterruptibly().channel();
+        LOGGER.debug("NettyRpcClient started");
     }
 
     public void stop() {
         if (channel != null) {
-            channel.close();
+            channel.close().syncUninterruptibly();
         }
+        LOGGER.debug("NettyRpcClient stopped");
     }
 
-    public synchronized Serializable request(Serializable msg) {
-        channel.writeAndFlush(msg);
+    public Serializable request(Serializable msg) {
         try {
-            while (response == null) wait();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            lock.lock();
+            channel.writeAndFlush(msg);
+            try {
+                while (response == null) notFull.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            Serializable r = response;
+            response = null;
+            notFull.signal();
+            return r;
+        } finally {
+            lock.unlock();
         }
-        return response;
     }
 
     private class DataExchangeHandler extends SimpleChannelInboundHandler<Serializable> {
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, Serializable msg) throws Exception {
-            synchronized (NettyRpcClient.this) {
+            try {
+                lock.lock();
+                while (response != null) notEmpty.await();
                 response = msg;
-                notify();
+                notEmpty.signal();
+            } finally {
+                lock.unlock();
             }
         }
+
+        @Override
+        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+            LOGGER.error(cause.getMessage(), cause);
+            ctx.close();
+        }
+
     }
 }
+
 
