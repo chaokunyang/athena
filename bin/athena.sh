@@ -27,7 +27,7 @@ function athena_start() {
 
 function athena_stop() {
     echo Stoping athena ...
-    #  ps -ef | grep com.timeyang.athena.Athena | grep -v grep | awk '{print $1}' | xargs kill -s TERM
+    #  ps -ef | grep com.timeyang.athena.Athena | grep -v grep | awk '{print $2}' | xargs kill -s TERM
     kill -TERM `cat athena.pid`
     # 检查进程是否已经结束，如果没有，则继续等待
     while kill -0 `cat athena.pid` 2> /dev/null; do sleep 1; done;

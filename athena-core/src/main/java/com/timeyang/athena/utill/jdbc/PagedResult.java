@@ -19,7 +19,7 @@ public class PagedResult<T> {
         this.elements = elements;
         this.totalSize = totalSize;
         this.page = page.getPage();
-        this.size = page.getSize();
+        this.size = elements.size();
     }
 
     public boolean hasMore() {
