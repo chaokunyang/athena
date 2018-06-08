@@ -30,7 +30,7 @@ public class NettyRpcClient {
     private Channel channel;
     private Serializable response;
     private final Lock lock = new ReentrantLock();
-    private final Condition notFull  = lock.newCondition();
+    private final Condition empty = lock.newCondition();
     private final Condition notEmpty = lock.newCondition();
 
     public NettyRpcClient(String host, int port) {
@@ -78,13 +78,13 @@ public class NettyRpcClient {
             lock.lock();
             channel.writeAndFlush(msg);
             try {
-                while (response == null) notFull.await();
+                while (response == null) notEmpty.await();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
             Serializable r = response;
             response = null;
-            notFull.signal();
+            empty.signal();
             return r;
         } finally {
             lock.unlock();
@@ -97,7 +97,7 @@ public class NettyRpcClient {
         protected void channelRead0(ChannelHandlerContext ctx, Serializable msg) throws Exception {
             try {
                 lock.lock();
-                while (response != null) notEmpty.await();
+                while (response != null) empty.await();
                 response = msg;
                 notEmpty.signal();
             } finally {
@@ -113,5 +113,7 @@ public class NettyRpcClient {
 
     }
 }
+
+
 
 
