@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 public class Page {
     private int page;
     private int size;
+    private int offset;
     private List<Sort> sorts;
     private List<Criterion> criteria;
 
@@ -27,6 +28,7 @@ public class Page {
     public Page(int page, int size, List<Sort> sorts, List<Criterion> criteria) {
         this.page = page;
         this.size = size;
+        this.offset = page * size;
         this.sorts = sorts;
         this.criteria = criteria;
 
@@ -41,7 +43,11 @@ public class Page {
     }
 
     public int getPage() {
-        return page;
+        if (page != 0) {
+            return page;
+        } else {
+            return offset / size;
+        }
     }
 
     public void setPage(int page) {
@@ -54,6 +60,18 @@ public class Page {
 
     public void setSize(int size) {
         this.size = size;
+    }
+
+    public int getOffset() {
+        if (offset != 0) {
+            return offset;
+        } else {
+            return page * size;
+        }
+    }
+
+    public void setOffset(int offset) {
+        this.offset = offset;
     }
 
     public String buildOrderByClause() {
@@ -115,6 +133,27 @@ public class Page {
 
     public enum Order {
         ASC, DESC
+    }
+
+    public static Page makePageWithOffset(int offset, int size) {
+        int page = offset/ size;
+        Page p = new Page(page, size);
+        p.setOffset(offset);
+        return p;
+    }
+
+    public static Page makePageWithOffset(int offset, int size, List<Sort> sorts) {
+        int page = offset/ size;
+        Page p = new Page(page, size, sorts);
+        p.setOffset(offset);
+        return p;
+    }
+
+    public static Page makePageWithOffset(int offset, int size, List<Sort> sorts, List<Criterion> criteria) {
+        int page = offset/ size;
+        Page p = new Page(page, size, sorts, criteria);
+        p.setOffset(offset);
+        return p;
     }
 
 }

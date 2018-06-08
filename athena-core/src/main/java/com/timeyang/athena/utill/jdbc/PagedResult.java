@@ -12,6 +12,7 @@ public class PagedResult<T> {
     public static final int DEFAULT_MAX_NO_OF_ROWS = 100;
     private int page;
     private int size;
+    private int offset;
     private long totalSize;
     private List<T> elements;
 
@@ -19,6 +20,7 @@ public class PagedResult<T> {
         this.elements = elements;
         this.totalSize = totalSize;
         this.page = page.getPage();
+        this.offset = page.getOffset();
         this.size = elements.size();
     }
 
@@ -38,6 +40,10 @@ public class PagedResult<T> {
         return page;
     }
 
+    public int getOffset() {
+        return offset;
+    }
+
     public int getSize() {
         return size;
     }
@@ -50,6 +56,7 @@ public class PagedResult<T> {
     public String toString() {
         return "PagedResult{" +
                 "page=" + page +
+                ", offset=" + offset +
                 ", size=" + size +
                 ", totalSize=" + totalSize +
                 ", elements=" + elements +

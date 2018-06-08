@@ -106,7 +106,7 @@ public class JdbcUtils {
     }
 
     public static <T> PagedResult<T> queryPage(DataSource dataSource, String tableName, Page page, RowMapper<T> rowMapper) {
-        long offset = page.getPage() * page.getSize();
+        long offset = page.getOffset();
         String orderByClause = page.buildOrderByClause();
         String criterionClause = page.buildCriterionClause();
         String whereClause = " ";
