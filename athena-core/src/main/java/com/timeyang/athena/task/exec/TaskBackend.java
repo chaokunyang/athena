@@ -50,9 +50,9 @@ public class TaskBackend {
     private final int port;
     private final AthenaConf athenaConf;
 
+    private final TaskCallback taskCallback;
     private final EventLoopGroup bossGroup;
     private final EventLoopGroup workerGroup;
-    private final Class<? extends ServerChannel> channelClass;
     private final ServerBootstrap bootstrap;
     private Channel serverChannel;
 
@@ -60,8 +60,6 @@ public class TaskBackend {
             new DefaultChannelGroup(ImmediateEventExecutor.INSTANCE);
     // remote task handles
     private final ConcurrentMap<Long, RemoteTaskHandle> remoteTasks = new ConcurrentHashMap<>();
-    private final TaskCallback taskCallback;
-
     private final ConcurrentMap<Long, Task> taskInstances = new ConcurrentHashMap<>();
     private final Set<Long> startingTaskIds = ConcurrentHashMap.newKeySet();
 
@@ -71,6 +69,7 @@ public class TaskBackend {
         this.athenaConf = athenaConf;
         this.taskCallback = taskCallback;
 
+        Class<? extends ServerChannel> channelClass;
         if (SystemUtils.IS_LINUX) {
             bossGroup = new EpollEventLoopGroup(1);
             workerGroup = new EpollEventLoopGroup();
@@ -177,6 +176,8 @@ public class TaskBackend {
         Channel channel = remoteTaskHandle.getChannel();
         ChannelFuture channelFuture = channel.writeAndFlush(new TaskMessage.KillTask());
         channelFuture.addListener((ChannelFutureListener) future -> {
+            removeTaskInfo(taskId);
+            future.channel().close();
             runnable.run();
         });
         return channelFuture;
