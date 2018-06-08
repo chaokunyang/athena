@@ -21,7 +21,13 @@ function athena_init() {
 
 function athena_start() {
     echo Starting athena ...
-    nohup java -cp ${cp} com.timeyang.athena.Athena >${ATHENA_HOME}/athena.out 2>&1 &
+    if [ -e athena.pid ];
+    then
+      if [ -e /proc/`cat athena.pid` ]; then
+        athena_stop
+      fi
+      nohup java -cp ${cp} com.timeyang.athena.Athena >${ATHENA_HOME}/athena.out 2>&1 &
+    fi
     echo Athena started
 }
 
