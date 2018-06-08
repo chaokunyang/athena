@@ -278,6 +278,7 @@ public class TaskBackend {
                 TaskContext taskContext = TaskContextImpl.makeTaskContext(taskId);
                 ctx.writeAndFlush(new TaskMessage.TaskSubmit(task, taskContext)); // send task to TaskExecutor
             } else if (evt == TaskEvent.TASK_LOST) {
+                ctx.close(); // task lost, close channel
                 long taskId = this.remoteTaskHandle.getTaskId();
 
                 Task task = taskInstances.get(taskId);

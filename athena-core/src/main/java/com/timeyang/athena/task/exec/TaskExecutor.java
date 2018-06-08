@@ -145,7 +145,7 @@ public class TaskExecutor {
     /**
      * exit when timeout
      */
-    private static class HeartbeatHandler extends ChannelInboundHandlerAdapter {
+    private class HeartbeatHandler extends ChannelInboundHandlerAdapter {
 
         @Override
         public void userEventTriggered(ChannelHandlerContext ctx,
@@ -154,6 +154,7 @@ public class TaskExecutor {
                 ctx.writeAndFlush(new HeartBeat())
                         .addListener((ChannelFutureListener) future -> {
                             if (!future.isSuccess()) {
+                                LOGGER.info("task [{}] connection to taskManager timeout.  Exit taskExecutor now", taskId);
                                 System.exit(0);
                             }
                         });

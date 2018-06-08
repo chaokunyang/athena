@@ -63,21 +63,20 @@ public class SystemUtils {
 
     public static String getCurrentClasspath() {
         // return System.getProperty("java.class.path");
-        String split;
-        if (IS_WINDOWS) {
-            split = ";";
-        } else {
-            split = ":";
-        }
-        ClassLoader cl = ClassLoader.getSystemClassLoader();
-        Set<URL> urls = new LinkedHashSet<>(Arrays.asList(((URLClassLoader) cl).getURLs()));
+        // return System.getProperty("java.class.path");
 
-        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
-        if (contextClassLoader instanceof URLClassLoader) {
-            urls.addAll(Arrays.asList(((URLClassLoader) contextClassLoader).getURLs()));
+        ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
+        URL[] urls = ((URLClassLoader)systemClassLoader).getURLs();
+        Set<URL> cp = new LinkedHashSet<>(Arrays.asList(urls));
+
+        ClassLoader classLoader = SystemUtils.class.getClassLoader();
+        if (classLoader instanceof  URLClassLoader) {
+            URLClassLoader urlClassLoader = (URLClassLoader) classLoader;
+            cp.addAll(Arrays.asList(urlClassLoader.getURLs()));
         }
 
-        return urls.stream().map(url -> {
+        String split = IS_WINDOWS ? ";" : ":";
+        return cp.stream().map(url -> {
             try {
                 return new File((url.toURI())).getAbsolutePath();
             } catch (URISyntaxException e) {

@@ -91,49 +91,6 @@ public class TaskExecutorLauncher {
         return new ClassLoaderUtils.ChildFirstURLClassLoader(urls, TaskExecutorLauncher.class.getClassLoader());
     }
 
-    public static void main(String[] args) {
-        info("args: " + Arrays.asList(args));
-        ParametersUtils parametersUtils = ParametersUtils.fromArgs(args);
-        long taskId = parametersUtils.getLong("taskId");
-        String taskManagerHost = parametersUtils.get("taskManagerHost");
-        int taskManagerPort = parametersUtils.getInt("taskManagerPort");
-        String taskFilePath = parametersUtils.get("taskFilePath");
-        String mainClasspath = System.getProperty("java.class.path");
-        String classpathFile = parametersUtils.get("classpathFile");
-        URL[] classpath = getClassPath(mainClasspath, classpathFile);
-
-        info("mainClasspath: " + mainClasspath);
-        info("classpathFile: " + classpathFile);
-        info("classpath: " + Arrays.asList(classpath));
-
-        URLClassLoader urlClassLoader = createClassLoader(classpath);
-        Thread.currentThread().setContextClassLoader(urlClassLoader);
-        try {
-            Class<?> executorClass = urlClassLoader.loadClass(TASK_EXECUTOR_NAME);
-            info("executorClass: " + executorClass);
-            Constructor<?> constructor =
-                    executorClass.getDeclaredConstructor(long.class, String.class, int.class, String.class);
-            Object executor = constructor.newInstance(taskId, taskManagerHost, taskManagerPort, taskFilePath);
-            info("executor instance: " + executor);
-
-            info("start task executor");
-            ReflectionUtils.invokeMethod(executor, "start");
-            info("started task executor");
-
-            info("execute task executor");
-            ReflectionUtils.invokeMethod(executor, "execute");
-            info("executed task executor ");
-
-            info("stop task executor");
-            ReflectionUtils.invokeMethod(executor, "stop");
-            info("stopped task executor");
-
-            System.exit(0);
-        } catch (ClassNotFoundException | InvocationTargetException | InstantiationException | NoSuchMethodException | IllegalAccessException e) {
-            e.printStackTrace();
-        }
-    }
-
     private static List<String> getHadoopClasspath() {
         try {
             String[] commands;
@@ -205,11 +162,60 @@ public class TaskExecutorLauncher {
         }
     }
 
+    public static int getPID() {
+        String processName =
+                java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
+        return Integer.parseInt(processName.split("@")[0]);
+    }
+
     private static void info(Object msg) {
         String time = FORMATTER.format(Instant.now());
         System.out.printf("%s [%s] INFO %s - %s \n",
                 time, Thread.currentThread().getName(), TaskExecutorLauncher.class.getName(),
                 msg.toString());
+    }
+
+    public static void main(String[] args) {
+        info("args: " + Arrays.asList(args));
+        ParametersUtils parametersUtils = ParametersUtils.fromArgs(args);
+        long taskId = parametersUtils.getLong("taskId");
+        String taskManagerHost = parametersUtils.get("taskManagerHost");
+        int taskManagerPort = parametersUtils.getInt("taskManagerPort");
+        String taskFilePath = parametersUtils.get("taskFilePath");
+        String mainClasspath = System.getProperty("java.class.path");
+        String classpathFile = parametersUtils.get("classpathFile");
+        URL[] classpath = getClassPath(mainClasspath, classpathFile);
+
+        info("mainClasspath: " + mainClasspath);
+        info("classpathFile: " + classpathFile);
+        info("classpath: " + Arrays.asList(classpath));
+
+        URLClassLoader urlClassLoader = createClassLoader(classpath);
+        Thread.currentThread().setContextClassLoader(urlClassLoader);
+        try {
+            Class<?> executorClass = urlClassLoader.loadClass(TASK_EXECUTOR_NAME);
+            info("executorClass: " + executorClass);
+            Constructor<?> constructor =
+                    executorClass.getDeclaredConstructor(long.class, String.class, int.class, String.class);
+            Object executor = constructor.newInstance(taskId, taskManagerHost, taskManagerPort, taskFilePath);
+            info("executor instance: " + executor);
+
+            info("start task executor");
+            ReflectionUtils.invokeMethod(executor, "start");
+            info("started task executor");
+
+            info("execute task executor");
+            ReflectionUtils.invokeMethod(executor, "execute");
+            info("executed task executor ");
+
+            info("stop task executor");
+            ReflectionUtils.invokeMethod(executor, "stop");
+            info("stopped task executor");
+
+            System.exit(0);
+        } catch (ClassNotFoundException | InvocationTargetException | InstantiationException | NoSuchMethodException | IllegalAccessException e) {
+            e.printStackTrace();
+        }
     }
 
 }
