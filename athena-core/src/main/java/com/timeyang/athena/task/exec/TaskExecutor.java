@@ -176,10 +176,16 @@ public class TaskExecutor {
                 if (f.isSuccess()) {
                     LOGGER.info("");
                 } else {
-                    LOGGER.error("task [{}] hand shake failed", taskId);
+                    LOGGER.error("task [{}] hand shake failed. Exit taskExecutor now", taskId);
                     System.exit(0);
                 }
             });
+        }
+
+        @Override
+        public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+            LOGGER.error("Connection between taskExecutor and taskManager is disconnected. Exit taskExecutor now");
+            System.exit(0);
         }
 
         @Override
@@ -192,6 +198,7 @@ public class TaskExecutor {
             }
 
             if (msg instanceof KillTask) {
+                LOGGER.info("Received kill task command. Exit taskExecutor now");
                 System.exit(0);
             }
 

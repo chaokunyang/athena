@@ -284,12 +284,12 @@ public class TaskBackend {
                 try {
                     task.onLost(TaskContextImpl.makeTaskContext(taskId));
                 } catch (Throwable e) {
-                    String msg = String.format("Call task [%s] onLost method failed", task);
+                    String msg = String.format("Call onLost method for task [%s] [%s]  failed", taskId, task);
                     LOGGER.warn(msg, e);
                 }
                 taskCallback.onLost(taskId);
 
-                LOGGER.info("task {} lost", taskInstances.get(taskId));
+                LOGGER.info("task [{}] {} lost connection", taskId, taskInstances.get(taskId));
                 taskInstances.remove(taskId);
                 remoteTasks.remove(taskId);
             }
