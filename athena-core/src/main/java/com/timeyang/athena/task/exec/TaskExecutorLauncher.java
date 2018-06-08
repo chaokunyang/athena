@@ -216,6 +216,7 @@ public class TaskExecutorLauncher {
         } catch (ClassNotFoundException | InvocationTargetException | InstantiationException | NoSuchMethodException | IllegalAccessException e) {
             e.printStackTrace();
         }
+        System.exit(0);
     }
 
 }

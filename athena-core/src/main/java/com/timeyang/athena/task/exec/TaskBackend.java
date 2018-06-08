@@ -29,7 +29,6 @@ import io.netty.util.concurrent.ImmediateEventExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -91,8 +90,8 @@ public class TaskBackend {
 
                         pipeline.addLast(
                                 new TaskHandShakeHandler());
-                        pipeline.addLast(new TaskHeartbeatHandler());
                         pipeline.addLast(new TaskMessageCodec());
+                        pipeline.addLast(new TaskHeartbeatHandler());
                         pipeline.addLast(new TaskHandler());
                     }
                 });
@@ -231,7 +230,7 @@ public class TaskBackend {
                     new RemoteTaskHandle(taskId, pid, ctx.channel());
             remoteTasks.put(taskId, remoteTaskHandle);
 
-            LOGGER.info("task [{}] hand shake finished, remove TaskHandShakeHandler from pipeline, fire TaskStarted event");
+            LOGGER.info("task [{}] hand shake finished, remove TaskHandShakeHandler from pipeline, fire TaskStarted event", taskId);
             ctx.pipeline().remove(this); // handshake finished, remove TaskHandShakeHandler from pipeline
             ctx.fireUserEventTriggered(new TaskStarted(remoteTaskHandle));
         }
@@ -249,6 +248,7 @@ public class TaskBackend {
                 ctx.writeAndFlush(new TaskMessage.HeartBeat())
                         .addListener((ChannelFutureListener) future -> {
                             if (!future.isSuccess()) {
+                                LOGGER.error(future.cause().getMessage(), future.cause());
                                 ctx.fireUserEventTriggered(TaskEvent.TASK_LOST);
                             }
                         });
@@ -337,7 +337,6 @@ public class TaskBackend {
                 remoteTasks.remove(taskId);
             } else if (msg instanceof LogQueryResult) {
                 LogQueryResult logQueryResult = (LogQueryResult) msg;
-                System.out.println("logQueryResult: " + logQueryResult);
                 this.remoteTaskHandle.getLogExchange().set(logQueryResult.getLines());
             }
         }
@@ -406,8 +405,6 @@ public class TaskBackend {
 
         public synchronized void set(List<String> lines) {
             this.lines = lines;
-
-            System.out.println("log lines: " + lines);
             notify();
         }
 

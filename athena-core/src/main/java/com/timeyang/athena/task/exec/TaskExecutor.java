@@ -39,13 +39,18 @@ import static com.timeyang.athena.task.message.TaskMessage.*;
  * @author https://github.com/chaokunyang
  */
 public class TaskExecutor {
+    // static {
+    //     PatternLayout layout = new PatternLayout("%d{yyyy-MM-dd HH:mm:ss} [%t] %-5p %c{2}:%L - %m%n");
+    //     @SuppressWarnings("unchecked")
+    //     ArrayList<Appender> list = Collections.list(org.apache.log4j.Logger.getRootLogger().getAllAppenders());
+    //     list.forEach(appender -> appender.setLayout(layout));
+    // }
     private static final Logger LOGGER = LoggerFactory.getLogger(TaskExecutor.class);
 
     private final long taskId;
     private final String taskManagerHost;
     private final int taskManagerPort;
 
-    private Class<? extends Channel> channelClass;
     private EventLoopGroup group;
     private Bootstrap b;
     private Channel channel;
@@ -65,6 +70,7 @@ public class TaskExecutor {
             LOGGER.warn("taskFilePath is null, taskExecutor won't provide log view feature");
         }
 
+        Class<? extends Channel> channelClass;
         if(SystemUtils.isLinux()) {
             group = new EpollEventLoopGroup();
             channelClass = EpollSocketChannel.class;
@@ -99,8 +105,6 @@ public class TaskExecutor {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
-
-        Runtime.getRuntime().addShutdownHook(new Thread(this::stop));
     }
 
     public void stop() {
@@ -130,6 +134,7 @@ public class TaskExecutor {
                 try {
                     channel.writeAndFlush(new TaskFailure(task, throwable));
                     LOGGER.info("Send TaskFailure message succeed");
+                    channel.close().syncUninterruptibly();
                     System.exit(0);
                 } catch (Throwable e) {
                     LOGGER.info("Send TaskFailure message failed");
@@ -154,7 +159,8 @@ public class TaskExecutor {
                 ctx.writeAndFlush(new HeartBeat())
                         .addListener((ChannelFutureListener) future -> {
                             if (!future.isSuccess()) {
-                                LOGGER.info("task [{}] connection to taskManager timeout.  Exit taskExecutor now", taskId);
+                                LOGGER.error("task [{}] connection to taskManager timeout.  Exit taskExecutor now", taskId, future.cause());
+                                ctx.close().syncUninterruptibly();
                                 System.exit(0);
                             }
                         });
@@ -175,9 +181,10 @@ public class TaskExecutor {
             ChannelFuture channelFuture = ctx.writeAndFlush(buffer);
             channelFuture.addListener(f -> {
                 if (f.isSuccess()) {
-                    LOGGER.info("");
+                    LOGGER.info("task [{}] hand shake succeed", taskId);
                 } else {
                     LOGGER.error("task [{}] hand shake failed. Exit taskExecutor now", taskId);
+                    ctx.close().syncUninterruptibly();
                     System.exit(0);
                 }
             });

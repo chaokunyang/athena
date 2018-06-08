@@ -78,7 +78,7 @@ public abstract class TaskMessage {
         }
     }
 
-    public static final class HeartBeat extends TaskMessage {}
+    public static final class HeartBeat extends ObjectMessage {}
 
     public static final class LogQueryRequest extends ObjectMessage {
         private int lineNumber;
