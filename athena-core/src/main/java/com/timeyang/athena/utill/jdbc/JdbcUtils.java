@@ -9,7 +9,9 @@ import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.sql.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -18,18 +20,6 @@ import java.util.stream.Collectors;
 public class JdbcUtils {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JdbcUtils.class);
-
-    private static Map<String, Class<?>[]> preparedStatementMethodMap = getPreparedStatementMethodMap();
-
-    private static Map<String, Class<?>[]> getPreparedStatementMethodMap() {
-        Map<String, Class<?>[]> pMap = new HashMap<>();
-        pMap.put("setString", new Class[]{int.class, String.class});
-        pMap.put("setInt", new Class[]{int.class, int.class});
-        pMap.put("setTimestamp", new Class[]{int.class, Timestamp.class});
-        pMap.put("setLong", new Class[]{int.class, long.class});
-
-        return pMap;
-    }
 
     public static List<String> getAllTables(Connection connection) {
         List<String> tables = new ArrayList<>();
@@ -99,7 +89,8 @@ public class JdbcUtils {
                 int row = -1;
                 try {
                     row = rs.getRow();
-                } catch (SQLException ignored) {}
+                } catch (SQLException ignored) {
+                }
                 results.add(rowMapper.mapRow(rs, row));
             }
 
@@ -145,27 +136,23 @@ public class JdbcUtils {
         }
     }
 
-    public interface RowMapper<T> {
-        /**
-         * @param rs ResultSet
-         * @param rowNum Support for the getRow method is optional for ResultSets with a result set type of TYPE_FORWARD_ONLY. If not supported, -1 is passed
-         * @return Object
-         */
-        T mapRow(ResultSet rs, int rowNum) throws SQLException;
+    public static void insert(Connection connection, String tableName, List<FieldSetter> setFields) {
+        insert(connection, tableName, setFields, null);
     }
 
-    public static void insert(Connection connection, String tableName, List<SetField> setFields) {
-        insert(connection, tableName, setFields, null, null);
-    }
+    public static List<Object> insert(Connection connection, String tableName, List<FieldSetter> fieldSetters, String[] generatedIds, Class<?>... generatedIdClasses) {
+        if (generatedIds != null) {
+            Asserts.check(generatedIdClasses != null && generatedIdClasses.length == generatedIds.length,
+                    "If generatedIds provided, generatedIdClasses must be provided too");
+        }
 
-    public static List<Object> insert(Connection connection, String tableName, List<SetField> setFields, String[] generatedIds, Class<?>[] generatedIdClasses) {
         StringBuilder sqlBuilder = new StringBuilder("INSERT INTO ").append(tableName);
-        List<SetField> fields = setFields.stream()
-                .filter(setField -> setField.getSetMethod().equals("setString") || setField.getValue() != null)
+        List<FieldSetter> fields = fieldSetters.stream()
+                .filter(fieldSetter -> fieldSetter.getMethodName().equals("setString") || fieldSetter.getObjects() != null)
                 .collect(Collectors.toList());
 
         sqlBuilder.append('(');
-        sqlBuilder.append(fields.stream().map(setField -> StringUtils.addUnderscores(setField.getFieldName()))
+        sqlBuilder.append(fields.stream().map(fieldSetter -> StringUtils.addUnderscores(fieldSetter.getFieldName()))
                 .collect(Collectors.joining(", ")));
         sqlBuilder.append(") ");
         sqlBuilder.append("VALUES(");
@@ -175,28 +162,25 @@ public class JdbcUtils {
         String sql = sqlBuilder.toString();
         LOGGER.debug("insert sql: {}", sql);
 
-        PreparedStatement preparedStatement = null;
+        PreparedStatement pStatement = null;
         try {
             if (generatedIds != null) {
-                Asserts.notNull(generatedIdClasses, "If generatedIds provided, generatedIdClasses must be provided too");
-                preparedStatement = connection.prepareStatement(sql, generatedIds);
+                pStatement = connection.prepareStatement(sql, generatedIds);
             } else {
-                preparedStatement = connection.prepareStatement(sql);
+                pStatement = connection.prepareStatement(sql);
             }
             for (int i = 0; i < fields.size(); i++) {
-                SetField setField = fields.get(i);
-                ReflectionUtils.invokeMethod(
-                        preparedStatement,
-                        setField.getSetMethod(),
-                        preparedStatementMethodMap.get(setField.getSetMethod()),
-                        i + 1,  // index starts from 1
-                        setField.getValue()
-                );
+                FieldSetter fieldSetter = fields.get(i);
+                Object[] params = new Object[1 + fieldSetter.getObjects().length];
+                params[0] = i + 1;  // index starts from 1
+                System.arraycopy(fieldSetter.getObjects(), 0, params, 1, fieldSetter.getObjects().length);
+                ReflectionUtils.invokeMethod(pStatement, fieldSetter.getMethodName(),
+                        fieldSetter.getSignature(), (Object[]) params);
             }
-            preparedStatement.executeUpdate();
+            pStatement.executeUpdate();
             if (generatedIds != null) {
-                try (ResultSet generatedRs = preparedStatement.getGeneratedKeys()) {
-                    List<Object> generatedList = new ArrayList<>(generatedIds.length);
+                List<Object> generatedList = new ArrayList<>(generatedIds.length);
+                try (ResultSet generatedRs = pStatement.getGeneratedKeys()) {
                     for (int i = 0; i < generatedIds.length; i++) {
                         generatedRs.next();
 
@@ -205,19 +189,19 @@ public class JdbcUtils {
                                 generatedRs, methodName, new Class[]{int.class}, i + 1); // index starts from 1
                         generatedList.add(object);
                     }
-                    return generatedList;
                 }
+                return generatedList;
             } else {
-                return null;
+                return new ArrayList<>();
             }
         } catch (SQLException e) {
-            String msg = String.format("Insert into table %s failed. setFields %s", tableName, setFields.toString());
+            String msg = String.format("Insert into table %s failed. fieldSetters %s", tableName, fieldSetters.toString());
             LOGGER.error(msg, e);
             throw new AthenaException(msg, e);
         } finally {
-            if (preparedStatement != null) {
+            if (pStatement != null) {
                 try {
-                    preparedStatement.close();
+                    pStatement.close();
                 } catch (SQLException e) {
                     LOGGER.error(e.getMessage(), e);
                 }
@@ -225,39 +209,4 @@ public class JdbcUtils {
         }
     }
 
-    /**
-     * @author https://github.com/chaokunyang
-     */
-    public static class SetField {
-        private String fieldName;
-        private Object value;
-        private String setMethod;
-
-        public SetField(String fieldName, Object value, String setMethod) {
-            this.fieldName = fieldName;
-            this.value = value;
-            this.setMethod = setMethod;
-        }
-
-        @Override
-        public String toString() {
-            return "SetField{" +
-                    "fieldName='" + fieldName + '\'' +
-                    ", value=" + value +
-                    ", setMethod='" + setMethod + '\'' +
-                    '}';
-        }
-
-        String getFieldName() {
-            return fieldName;
-        }
-
-        Object getValue() {
-            return value;
-        }
-
-        String getSetMethod() {
-            return setMethod;
-        }
-    }
 }

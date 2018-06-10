@@ -4,18 +4,18 @@ import com.timeyang.athena.AthenaException;
 import com.timeyang.athena.task.TaskInfo.FinishedTask;
 import com.timeyang.athena.task.TaskInfo.RunningTask;
 import com.timeyang.athena.task.TaskInfo.WaitingTask;
-import com.timeyang.athena.utill.jdbc.JdbcUtils;
-import com.timeyang.athena.utill.jdbc.JdbcUtils.RowMapper;
-import com.timeyang.athena.utill.jdbc.Page;
-import com.timeyang.athena.utill.jdbc.PagedResult;
+import com.timeyang.athena.utill.jdbc.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.sql.*;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+
+import static com.timeyang.athena.utill.jdbc.FieldSetter.makeSetter;
 
 /**
  * access database to get all kinds of task
@@ -109,29 +109,25 @@ public class TaskRepository {
         String sql = "INSERT INTO " + WAITING_TASK_TABLE +
                 "(task_name, host, class_name, params, max_tries, submit_time, classpath, retry_wait, task_type, host_fixed) " +
                 "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        try (Connection connection = this.dataSource.getConnection();
-             PreparedStatement pStatement = connection.prepareStatement(sql, new String[]{"TASK_ID"})) {
-            pStatement.setString(1, task.getTaskName());
-            pStatement.setString(2, task.getHost());
-            pStatement.setString(3, task.getClassName());
-            pStatement.setString(4, task.getParams());
-            pStatement.setInt(5, task.getMaxTries());
-            pStatement.setTimestamp(6, Timestamp.from(task.getSubmitTime()));
-            pStatement.setString(7, task.getClasspath());
-            pStatement.setLong(8, task.getRetryWait());
-            pStatement.setString(9, task.getTaskType().toString());
-            pStatement.setBoolean(10, task.isHostFixed());
+        try (Connection connection = this.dataSource.getConnection()) {
 
-            int affectedRows = pStatement.executeUpdate();
-            if (affectedRows == 0) {
-                throw new AthenaException("Creating waiting task failed, no rows affected.");
-            }
-            try (ResultSet generatedKeys = pStatement.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    Long id = generatedKeys.getLong(1);
-                    task.setTaskId(id);
-                }
-            }
+
+            List<FieldSetter> setterList = Arrays.asList(
+                    makeSetter("task_name", task.getTaskName()),
+                    makeSetter("host", task.getHost()),
+                    makeSetter("class_name", task.getClassName()),
+                    makeSetter("params", task.getParams()),
+                    makeSetter("max_tries", task.getMaxTries()),
+                    makeSetter("submit_time", Timestamp.from(task.getSubmitTime())),
+                    makeSetter("classpath", task.getClasspath()),
+                    makeSetter("retry_wait", task.getRetryWait()),
+                    makeSetter("task_type", task.getTaskType().toString()),
+                    makeSetter("host_fixed", task.isHostFixed()));
+            List<Object> generatedKeys = JdbcUtils.insert(connection, WAITING_TASK_TABLE, setterList, new String[]{"TASK_ID"}, Long.class);
+
+            assert generatedKeys != null;
+            Long id = (Long) generatedKeys.get(0);
+            task.setTaskId(id);
         } catch (SQLException e) {
             String msg = String.format("Can't create waiting task [%s], sql: %s", task, sql);
             LOGGER.error(msg, e);
@@ -465,7 +461,7 @@ public class TaskRepository {
             }
 
         } catch (SQLException e) {
-           LOGGER.error("Update task {} execute host to {} failed", taskId, host, e);
+            LOGGER.error("Update task {} execute host to {} failed", taskId, host, e);
         }
     }
 

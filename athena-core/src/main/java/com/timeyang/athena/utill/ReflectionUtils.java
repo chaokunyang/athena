@@ -1,5 +1,7 @@
 package com.timeyang.athena.utill;
 
+import com.timeyang.athena.AthenaException;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -34,12 +36,16 @@ public class ReflectionUtils {
                 return method.invoke(target, params);
             } catch (NoSuchMethodException e) {
                 clazz = clazz.getSuperclass();
-                if(clazz == null)
+                if(clazz == null) {
                     throw new RuntimeException(new NoSuchMethodException(target.getClass()
                             + " and all its super class doesn't have " + methodName
                             + " with parameterTypes: " + Arrays.toString(parameterTypes)));
+                }
             } catch (IllegalAccessException | InvocationTargetException e) {
-                throw new RuntimeException(e);
+                String msg  = String.format("Invoke method failed: methodName [%s], parameterTypes [%s], params [%s]",
+                        methodName, Arrays.toString(parameterTypes), Arrays.toString(params));
+                e.printStackTrace();
+                throw new AthenaException(msg, e);
             }
         } while (true);
     }
