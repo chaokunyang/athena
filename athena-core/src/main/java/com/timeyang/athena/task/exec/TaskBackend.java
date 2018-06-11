@@ -32,10 +32,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * TaskBackend, responsible for communicating with TaskExecutor
@@ -172,14 +169,18 @@ public class TaskBackend {
 
     public Future killTask(long taskId, Runnable runnable) {
         RemoteTaskHandle remoteTaskHandle = remoteTasks.get(taskId);
-        Channel channel = remoteTaskHandle.getChannel();
-        ChannelFuture channelFuture = channel.writeAndFlush(new TaskMessage.KillTask());
-        channelFuture.addListener((ChannelFutureListener) future -> {
-            removeTaskInfo(taskId);
-            future.channel().close();
-            runnable.run();
-        });
-        return channelFuture;
+        if (remoteTaskHandle != null) {
+            Channel channel = remoteTaskHandle.getChannel();
+            ChannelFuture channelFuture = channel.writeAndFlush(new TaskMessage.KillTask());
+            channelFuture.addListener((ChannelFutureListener) future -> {
+                removeTaskInfo(taskId);
+                future.channel().close();
+                runnable.run();
+            });
+            return channelFuture;
+        } else {
+            return CompletableFuture.completedFuture(null);
+        }
     }
 
     public boolean isTaskStarting(long taskId) {

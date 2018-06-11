@@ -124,7 +124,8 @@ public class TaskManagerImpl implements TaskManager {
     @Override
     public boolean isTaskFinished(long taskId) {
         FinishedTask finishedTask = this.taskRepository.getFinishedTask(taskId);
-        return finishedTask != null;
+        // return true for if task finished or not exists
+        return finishedTask != null || (this.taskRepository.getWaitingTask(taskId) == null && this.taskRepository.getRunningTask(taskId) == null);
     }
 
     @Override
