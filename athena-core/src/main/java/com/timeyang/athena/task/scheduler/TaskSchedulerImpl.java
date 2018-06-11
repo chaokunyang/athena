@@ -56,7 +56,8 @@ public class TaskSchedulerImpl implements TaskScheduler {
         scheduledExecutorService.scheduleWithFixedDelay(
                 this::scheduleWaitingTasks, 0, SCHEDULE_INTERVAL_SECONDS, TimeUnit.SECONDS);
         LOGGER.info("Task scheduler started");
-        checkRunningTasks();
+        scheduledExecutorService.schedule(
+                this::checkRunningTasks, 3, TimeUnit.SECONDS);
     }
 
     @Override
@@ -121,43 +122,55 @@ public class TaskSchedulerImpl implements TaskScheduler {
     }
 
     private void scheduleWaitingTasks() {
-        List<Page.Sort> sorts = Collections.singletonList(
-                new Page.Sort("submit_time", Page.Order.ASC));
+        try {
+            List<Page.Sort> sorts = Collections.singletonList(
+                    new Page.Sort("submit_time", Page.Order.ASC));
 
-        PagedResult<WaitingTask> pagedResult;
-        do {
-            Page page = new Page(0, 10, sorts);
-            pagedResult = taskRepository.getWaitingTasks(page);
-            if (pagedResult.getTotalSize() > 0) {
-                LOGGER.info("There's {} tasks waiting to be scheduled", pagedResult.getTotalSize());
-            }
-
-            List<WaitingTask> waitingTasks = pagedResult.getElements();
-            waitingTasks.forEach(task -> {
-                // response thread interrupt
-                if(!Thread.currentThread().isInterrupted()) {
-                    LOGGER.info("task [{}] is in waiting_task, schedule it", task);
-                    schedule(task);
+            PagedResult<WaitingTask> pagedResult;
+            do {
+                Page page = new Page(0, 10, sorts);
+                pagedResult = taskRepository.getWaitingTasks(page);
+                if (pagedResult.getTotalSize() > 0) {
+                    LOGGER.info("There's {} tasks waiting to be scheduled", pagedResult.getTotalSize());
                 }
-            });
-        } while (pagedResult.getTotalSize() > pagedResult.getSize());
+
+                List<WaitingTask> waitingTasks = pagedResult.getElements();
+                waitingTasks.forEach(task -> {
+                    // response thread interrupt
+                    if(!Thread.currentThread().isInterrupted()) {
+                        LOGGER.info("task [{}] is in waiting_task, schedule it", task);
+                        schedule(task);
+                    }
+                });
+            } while (pagedResult.getTotalSize() > pagedResult.getSize());
+        } catch (Throwable throwable) {
+            LOGGER.error(throwable.getMessage(), throwable);
+        }
+
     }
 
     private void checkRunningTasks() {
-        LOGGER.info("Check running tasks");
-        PagedResult<RunningTask> pagedResult;
-        do {
-            pagedResult = taskRepository.getRunningTasks(new Page(0, 10));
+        try {
+            LOGGER.info("Check running tasks");
+            PagedResult<RunningTask> pagedResult = taskRepository.getRunningTasks(new Page(0, Integer.MAX_VALUE));
             LOGGER.info("There's {} tasks waiting to be scheduled", pagedResult.getTotalSize());
             List<RunningTask> tasks = pagedResult.getElements();
             tasks.forEach(task -> {
                 // if task is not running(maybe system restarted), schedule the task
-                if (!taskBackend.isTaskRunning(task.getTaskId())) {
+                if (!taskBackend.isTaskRunning(task.getTaskId()) &&
+                        task.getTryNumber() < task.getMaxTries()) {
                     LOGGER.info("task {} in table {} is not running, start it", task.getTaskId(), TaskRepository.RUNNING_TASK_TABLE);
                     schedule(task);
+                } else {
+                    FinishedTask finishedTask = new FinishedTask(task);
+                    finishedTask.setState(TaskState.FAILED);
+                    taskRepository.moveToFinished(finishedTask);
                 }
             });
-        } while (pagedResult.getTotalSize() > pagedResult.getSize());
+            LOGGER.info("Check running tasks finished");
+        } catch (Throwable throwable) {
+            LOGGER.error(throwable.getMessage(), throwable);
+        }
     }
 
     /**

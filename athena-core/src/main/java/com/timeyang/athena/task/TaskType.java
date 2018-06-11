@@ -48,13 +48,14 @@ public enum TaskType {
             String athenaFilePath = FileUtils.getResourceFile("athena.properties").getAbsolutePath();
             String athenaDefaultFilePath = FileUtils.getResourceFile("athena-default.properties").getAbsolutePath();
             String files = String.format(" --files %s,%s ", athenaFilePath, athenaDefaultFilePath);
-            return "spark-submit --master yarn-client  " +
+            return "nohup spark-submit --master yarn-client  " +
                     " --conf spark.yarn.submit.waitAppCompletion=false " +
                     " --class " + TaskExecutor.class.getName() +
                     " --jars " + SystemUtils.CLASSPATH.replaceAll(";", ",")
                     + files
                     + " " + ClassUtils.findJar(TaskExecutor.class)
-                    + " " + params;
+                    + " " + params
+                    + " >/dev/null 2>&1 &";
         }
     },
     FLINK {
