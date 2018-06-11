@@ -3,6 +3,7 @@ package com.timeyang.athena.task;
 import com.timeyang.athena.task.exec.TaskExecutor;
 import com.timeyang.athena.task.exec.TaskUtils;
 import com.timeyang.athena.utill.ClassUtils;
+import com.timeyang.athena.utill.FileUtils;
 import com.timeyang.athena.utill.SystemUtils;
 
 import java.nio.file.Paths;
@@ -44,14 +45,16 @@ public enum TaskType {
                     + " --taskManagerPort " + taskRpcPort
                     + " " + task.getParams();
 
-            String files = Paths.get("./conf/athena.properties").toAbsolutePath().toString() +
-                    "," + Paths.get("./conf/athena-default.properties").toAbsolutePath();
-            String cmd = "spark-submit --master yarn-client --class " + TaskExecutor.class.getCanonicalName()
-                    + " --jars " + SystemUtils.CLASSPATH.replaceAll(";", ",")
-                    + " --files " + files
+            String athenaFilePath = FileUtils.getResourceFile("athena.properties").getAbsolutePath();
+            String athenaDefaultFilePath = FileUtils.getResourceFile("athena-default.properties").getAbsolutePath();
+            String files = String.format(" --files %s,%s ", athenaFilePath, athenaDefaultFilePath);
+            return "spark-submit --master yarn-client  " +
+                    " --conf spark.yarn.submit.waitAppCompletion=false " +
+                    " --class " + TaskExecutor.class.getName() +
+                    " --jars " + SystemUtils.CLASSPATH.replaceAll(";", ",")
+                    + files
                     + " " + ClassUtils.findJar(TaskExecutor.class)
                     + " " + params;
-            return cmd;
         }
     },
     FLINK {

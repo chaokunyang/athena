@@ -73,17 +73,21 @@ public class TaskSchedulerImpl implements TaskScheduler {
 
     @Override
     public void schedule(TaskInfo task) {
-        Long taskId = task.getTaskId();
-        if (taskBackend.isTaskStarting(taskId)) {
-            LOGGER.info("Task {} is starting", taskId);
-        } else {
-            if (!task.isHostFixed()) {
-                task.setHost(getTaskHost(task));
-                this.taskRepository.updateTaskHost(taskId, task.getHost());
-            }
+        try {
+            Long taskId = task.getTaskId();
+            if (taskBackend.isTaskStarting(taskId)) {
+                LOGGER.info("Task {} is starting", taskId);
+            } else {
+                if (!task.isHostFixed()) {
+                    task.setHost(getTaskHost(task));
+                    this.taskRepository.updateTaskHost(taskId, task.getHost());
+                }
 
-            LOGGER.info("schedule task [{}] for execute on host {}", taskId, task.getHost());
-            this.taskBackend.runTask(task);
+                LOGGER.info("schedule task [{}] for execute on host {}", taskId, task.getHost());
+                this.taskBackend.runTask(task);
+            }
+        } catch (Throwable throwable) {
+            LOGGER.error(throwable.getMessage(), throwable);
         }
     }
 

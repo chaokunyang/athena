@@ -21,7 +21,12 @@ public class FileUtils {
                     .getContextClassLoader()
                     .getResourceAsStream(filename);
             if (stream == null) {
-                stream = new FileInputStream(filename);
+                File file = new File(filename);
+                if (file.exists()) {
+                    stream = new FileInputStream(filename);
+                } else {
+                    stream = new FileInputStream("conf/" + filename);
+                }
             }
 
             Properties properties = new Properties();
@@ -38,13 +43,20 @@ public class FileUtils {
 
     public static String getResourcePath(String resourceName) {
         URL url = Thread.currentThread().getContextClassLoader().getResource(resourceName);
-        if(url == null)
+        if(url == null) {
+            url = FileUtils.class.getResource(resourceName);
+        }
+        if (url == null)
             throw new AthenaException(String.format("Resource %s doesn't exists", resourceName));
+
         return url.getPath();
     }
 
     public static File getResourceFile(String resourceName) {
         URL url = Thread.currentThread().getContextClassLoader().getResource(resourceName);
+        if(url == null) {
+            url = FileUtils.class.getResource(resourceName);
+        }
         if(url == null)
             throw new AthenaException(String.format("Resource %s doesn't exists", resourceName));
         File file;

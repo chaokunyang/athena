@@ -4,6 +4,7 @@ import com.timeyang.athena.utill.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -13,9 +14,9 @@ import java.util.Properties;
  *
  * @author https://github.com/chaokunyang
  */
-public class AthenaConf {
+public class AthenaConf implements Serializable {
     public static final Logger LOGGER = LoggerFactory.getLogger(AthenaConf.class);
-    public static volatile AthenaConf CONF;
+    private static volatile AthenaConf CONF;
     public static AthenaConf DEFAULT_CONF = getDefaultConf();
 
     static final String DISABLE_KEY_PREFIX = "disable.";
