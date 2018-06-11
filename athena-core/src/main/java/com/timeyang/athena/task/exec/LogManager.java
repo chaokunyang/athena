@@ -47,7 +47,7 @@ public class LogManager {
 
     private boolean collectTaskLog(TaskInfo taskInfo) {
         long taskId = taskInfo.getTaskId();
-        Path remoteLogFilePath = Paths.get(TaskUtils.getRemoteTaskLogFilePath(taskId));
+        Path remoteLogFilePath = Paths.get(TaskUtils.getTaskLogFilePath(taskId));
         String host = taskInfo.getHost();
         Path taskLogSavePath = Paths.get(TaskUtils.getTaskLogSavePath(taskId));
         try {

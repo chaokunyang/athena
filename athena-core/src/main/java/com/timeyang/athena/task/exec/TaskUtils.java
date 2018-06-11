@@ -81,9 +81,9 @@ public class TaskUtils {
         params = " --taskId " + taskId
                 + " --taskManagerHost " + taskRpcHost
                 + " --taskManagerPort " + taskRpcPort
-                + " --taskFilePath " + getRemoteTaskLogFilePath(taskId)
+                + " --taskFilePath " + getTaskLogFilePath(taskId)
                 + " " + params;
-        String redirectOut = " >" + getExecTaskDir(taskId) + "/" + TASK_LOG_FILE_NAME
+        String redirectOut = " >" + getTaskLogFilePath(taskId)
                 + " 2>&1 &";
         String cmd = "java -server -XX:OnOutOfMemoryError=kill "
                 + classpath
@@ -137,7 +137,7 @@ public class TaskUtils {
         //     return "";
         // }
 
-        if (Files.exists( Paths.get(".", "lib"))) {
+        if (Files.exists(Paths.get(".", "lib"))) {
             return Paths.get(".", "lib").toAbsolutePath().toString() + "/*";
         } else {
             return "";
@@ -165,7 +165,7 @@ public class TaskUtils {
         return p;
     }
 
-    public static String getRemoteTaskLogFilePath(long taskId) {
+    public static String getTaskLogFilePath(long taskId) {
         String path = getExecTaskDir(taskId) + "/" + TASK_LOG_FILE_NAME;
         if (SystemUtils.IS_WINDOWS) {
             return path.replaceAll("/", "\\\\");

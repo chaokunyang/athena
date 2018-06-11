@@ -6,8 +6,6 @@ import com.timeyang.athena.utill.ClassUtils;
 import com.timeyang.athena.utill.FileUtils;
 import com.timeyang.athena.utill.SystemUtils;
 
-import java.nio.file.Paths;
-
 /**
  * Task type
  *
@@ -34,7 +32,26 @@ public enum TaskType {
     MAPREDUCE {
         @Override
         public String getTaskCmd(TaskInfo task, String taskRpcHost, int taskRpcPort) {
-            throw new UnsupportedOperationException("Unsupported task type");
+            Long taskId = task.getTaskId();
+            String params = " --taskId " + taskId
+                    + " --taskManagerHost " + taskRpcHost
+                    + " --taskManagerPort " + taskRpcPort
+                    + " --taskFilePath " + TaskUtils.getTaskLogFilePath(taskId)
+                    + " " + task.getParams();
+            String athenaFilePath = FileUtils.getResourceFile("athena.properties").getAbsolutePath();
+            String athenaDefaultFilePath = FileUtils.getResourceFile("athena-default.properties").getAbsolutePath();
+            String files = String.format(" -files %s,%s ", athenaFilePath, athenaDefaultFilePath);
+
+            String redirectOut = " >" + TaskUtils.getTaskLogFilePath(taskId);
+            String env = "export HADOOP_CLASSPATH=" + SystemUtils.CLASSPATH;
+            return "nohup " + env
+                    + " && hadoop jar " + ClassUtils.findJar(TaskExecutor.class)
+                    + " " + TaskExecutor.class.getName()
+                    + " -libjars " + SystemUtils.CLASSPATH.replaceAll("[;:]", ",")
+                    + files
+                    + " " + params
+                    + redirectOut
+                    + " 2>&1 &";
         }
     },
     SPARK {
@@ -51,7 +68,7 @@ public enum TaskType {
             return "nohup spark-submit --master yarn-client  " +
                     " --conf spark.yarn.submit.waitAppCompletion=false " +
                     " --class " + TaskExecutor.class.getName() +
-                    " --jars " + SystemUtils.CLASSPATH.replaceAll(";", ",")
+                    " --jars " + SystemUtils.CLASSPATH.replaceAll("[;:]", ",")
                     + files
                     + " " + ClassUtils.findJar(TaskExecutor.class)
                     + " " + params
@@ -61,7 +78,22 @@ public enum TaskType {
     FLINK {
         @Override
         public String getTaskCmd(TaskInfo task, String taskRpcHost, int taskRpcPort) {
-            throw new UnsupportedOperationException("Unsupported task type");
+            String params = " --taskId " + task.getTaskId()
+                    + " --taskManagerHost " + taskRpcHost
+                    + " --taskManagerPort " + taskRpcPort
+                    + " " + task.getParams();
+
+            String athenaFilePath = FileUtils.getResourceFile("athena.properties").getAbsolutePath();
+            String athenaDefaultFilePath = FileUtils.getResourceFile("athena-default.properties").getAbsolutePath();
+            String files = String.format(" -yt %s,%s ", athenaFilePath, athenaDefaultFilePath);
+
+            return "nohup flink run -m yarn-cluster -yn 3 -yjm 4096 -ytm 4096 -ys 8 -yd " +
+                    " -c " + TaskExecutor.class.getName() +
+                    " -yj " + SystemUtils.CLASSPATH.replaceAll("[;:]", ",")
+                    + files
+                    + " " + ClassUtils.findJar(TaskExecutor.class)
+                    + " " + params
+                    + " >/dev/null 2>&1 &";
         }
     };
 
