@@ -33,7 +33,7 @@ public class TaskUtils {
     }
 
     private static String getDefaultTasksDir() {
-        return Paths.get( SystemUtils.WORK_DIR, DEFAULT_TASK_EXEC_DIR_NAME).toAbsolutePath().toString();
+        return Paths.get(SystemUtils.WORK_DIR, DEFAULT_TASK_EXEC_DIR_NAME).toAbsolutePath().toString();
     }
 
     public static String getTasksDir() {
@@ -94,7 +94,9 @@ public class TaskUtils {
             cmd = cmd.replaceAll("/", "\\\\");
         }
         if (SystemUtils.isLinux()) {
-            cmd = "nohup " + cmd;
+            // & has higher precedence than &&. use sub shell to workaround this
+            // see https://stackoverflow.com/questions/15934751/nohup-doesnt-work-when-used-with-double-ampersand-instead-of-semicolon
+            cmd = "(nohup " + cmd + ")";
         }
 
         return cmd;
