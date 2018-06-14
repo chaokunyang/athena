@@ -50,6 +50,8 @@ public class LogManager {
         Path remoteLogFilePath = Paths.get(TaskUtils.getTaskLogFilePath(taskId));
         String host = taskInfo.getHost();
         Path taskLogSavePath = Paths.get(TaskUtils.getTaskLogSavePath(taskId));
+        String execTaskDir = TaskUtils.getExecTaskDir(taskId);
+        Path execPath = Paths.get(execTaskDir);
         try {
             Files.createDirectories(taskLogSavePath.getParent());
         } catch (IOException e) {
@@ -60,6 +62,8 @@ public class LogManager {
             try {
                 Files.move(remoteLogFilePath, taskLogSavePath, StandardCopyOption.REPLACE_EXISTING);
                 LOGGER.info("task [{}] log collected", taskId);
+                Files.deleteIfExists(execPath);
+                LOGGER.info("clear task exec dir succeed");
                 return true;
             } catch (IOException e) {
                 e.printStackTrace();
@@ -78,6 +82,9 @@ public class LogManager {
             } else {
                 LOGGER.error("collect task [{}] log failed", taskId);
             }
+            String clearCmd = "rm -rf " + execTaskDir;
+            CmdUtils.exec(host, clearCmd);
+            LOGGER.info("clear task exec dir succeed");
 
             return succeed;
         }

@@ -221,6 +221,12 @@
                 <groupId>com.fasterxml.jackson.datatype</groupId>
                 <artifactId>jackson-datatype-json-org</artifactId>
                 <version>${jackson.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.geronimo.bundles</groupId>
+                        <artifactId>json</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.module</groupId>
