@@ -44,14 +44,14 @@ public enum TaskType {
 
             String redirectOut = " >" + TaskUtils.getTaskLogFilePath(taskId);
             String env = "export HADOOP_CLASSPATH=" + SystemUtils.CLASSPATH;
-            return "nohup " + env
+            return "(nohup " + env
                     + " && hadoop jar " + ClassUtils.findJar(TaskExecutor.class)
                     + " " + TaskExecutor.class.getName()
                     + " -libjars " + SystemUtils.CLASSPATH.replaceAll("[;:]", ",")
                     + files
                     + " " + params
                     + redirectOut
-                    + " 2>&1 &";
+                    + " 2>&1 &)";
         }
     },
     SPARK {
@@ -65,14 +65,14 @@ public enum TaskType {
             String athenaFilePath = FileUtils.getResourceFile("athena.properties").getAbsolutePath();
             String athenaDefaultFilePath = FileUtils.getResourceFile("athena-default.properties").getAbsolutePath();
             String files = String.format(" --files %s,%s ", athenaFilePath, athenaDefaultFilePath);
-            return "nohup spark-submit --master yarn-client  " +
+            return "(nohup spark-submit --master yarn-client  " +
                     " --conf spark.yarn.submit.waitAppCompletion=false " +
                     " --class " + TaskExecutor.class.getName() +
                     " --jars " + SystemUtils.CLASSPATH.replaceAll("[;:]", ",")
                     + files
                     + " " + ClassUtils.findJar(TaskExecutor.class)
                     + " " + params
-                    + " >/dev/null 2>&1 &";
+                    + " >/dev/null 2>&1 &)";
         }
     },
     FLINK {
@@ -87,13 +87,13 @@ public enum TaskType {
             String athenaDefaultFilePath = FileUtils.getResourceFile("athena-default.properties").getAbsolutePath();
             String files = String.format(" -yt %s,%s ", athenaFilePath, athenaDefaultFilePath);
 
-            return "nohup flink run -m yarn-cluster -yn 3 -yjm 4096 -ytm 4096 -ys 8 -yd " +
+            return "(nohup flink run -m yarn-cluster -yn 3 -yjm 4096 -ytm 4096 -ys 8 -yd " +
                     " -c " + TaskExecutor.class.getName() +
                     " -yj " + SystemUtils.CLASSPATH.replaceAll("[;:]", ",")
                     + files
                     + " " + ClassUtils.findJar(TaskExecutor.class)
                     + " " + params
-                    + " >/dev/null 2>&1 &";
+                    + " >/dev/null 2>&1 &)";
         }
     };
 
