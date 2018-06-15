@@ -7,6 +7,7 @@ import com.timeyang.athena.task.TaskInfo.RunningTask;
 import com.timeyang.athena.task.TaskInfo.WaitingTask;
 import com.timeyang.athena.task.TaskRepository;
 import com.timeyang.athena.task.TaskState;
+import com.timeyang.athena.task.TaskType;
 import com.timeyang.athena.task.exec.*;
 import com.timeyang.athena.utill.ParametersUtils;
 import com.timeyang.athena.utill.ThreadUtils;
@@ -155,18 +156,18 @@ public class TaskSchedulerImpl implements TaskScheduler {
             LOGGER.info("There's {} tasks waiting to be scheduled", pagedResult.getTotalSize());
             List<RunningTask> tasks = pagedResult.getElements();
             tasks.forEach(taskInfo -> {
+                Task task = TaskUtils.createTask(taskInfo.getClassName(), ParametersUtils.fromArgs(taskInfo.getParams()).get());
+                task.onLost(TaskContextImpl.makeTaskContext(taskInfo.getTaskId()));
                 // if task is not running(maybe system restarted), schedule the task
                 if (!taskBackend.isTaskRunning(taskInfo.getTaskId()) &&
                         taskInfo.getTryNumber() < taskInfo.getMaxTries()) {
                     LOGGER.info("task {} in table {} is not running, start it", taskInfo.getTaskId(), TaskRepository.RUNNING_TASK_TABLE);
+
                     schedule(taskInfo);
                 } else {
                     FinishedTask finishedTask = new FinishedTask(taskInfo);
                     finishedTask.setState(TaskState.FAILED);
                     taskRepository.moveToFinished(finishedTask);
-
-                    Task task = TaskUtils.createTask(taskInfo.getClassName(), ParametersUtils.fromArgs(taskInfo.getParams()).get());
-                    task.onLost(TaskContextImpl.makeTaskContext(taskInfo.getTaskId()));
                 }
             });
             LOGGER.info("Check running tasks finished");
@@ -181,7 +182,11 @@ public class TaskSchedulerImpl implements TaskScheduler {
      * @return task exec host
      */
     private String getTaskHost(TaskInfo taskInfo) {
-        return "localhost";
+        if (taskInfo.getTaskType() == TaskType.JAVA) {
+            return "localhost";
+        } else {
+            return "localhost";
+        }
     }
 
     /**

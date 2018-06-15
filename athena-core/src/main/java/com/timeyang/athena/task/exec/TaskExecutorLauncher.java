@@ -1,9 +1,6 @@
 package com.timeyang.athena.task.exec;
 
-import com.timeyang.athena.utill.ClassLoaderUtils;
-import com.timeyang.athena.utill.IoUtils;
-import com.timeyang.athena.utill.ParametersUtils;
-import com.timeyang.athena.utill.ReflectionUtils;
+import com.timeyang.athena.utill.*;
 
 import java.io.*;
 import java.lang.reflect.Constructor;
@@ -58,7 +55,7 @@ public class TaskExecutorLauncher {
             }
         }
 
-        List<String> hadoopClasspath = getHadoopClasspath();
+        Set<String> hadoopClasspath = ClassUtils.getHadoopClasspath();
         if (hadoopClasspath.isEmpty()) {
             info("Hadoop not installed");
         } else {
@@ -66,7 +63,7 @@ public class TaskExecutorLauncher {
             info("Add hadoop classpath to task classpath");
         }
 
-        List<String> sparkClasspath = getSparkClasspath();
+        Set<String> sparkClasspath = ClassUtils.getSparkClasspath();
         if (sparkClasspath.isEmpty()) {
             info("Spark not installed");
         } else {
@@ -89,77 +86,6 @@ public class TaskExecutorLauncher {
 
     private static URLClassLoader createClassLoader(URL[] urls) {
         return new ClassLoaderUtils.ChildFirstURLClassLoader(urls, TaskExecutorLauncher.class.getClassLoader());
-    }
-
-    private static List<String> getHadoopClasspath() {
-        try {
-            String[] commands;
-            String cmd = "hadoop classpath";
-            if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS")) {
-                commands = new String[]{"cmd", "/c", cmd};
-            } else {
-                commands = new String[]{"bash", "-c", cmd};
-            }
-            Process process = Runtime.getRuntime().exec(commands);
-            process.waitFor();
-            final int bufferSize = 1024;
-            final char[] buffer = new char[bufferSize];
-            final StringBuilder sb = new StringBuilder();
-            Reader reader = null;
-            try {
-                reader = new InputStreamReader(process.getInputStream(), Charset.defaultCharset().name());
-                for (; ; ) {
-                    int rsz = 0;
-                    try {
-                        rsz = reader.read(buffer, 0, buffer.length);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    if (rsz < 0)
-                        break;
-                    sb.append(buffer, 0, rsz);
-                }
-
-                List<String> hcp = new ArrayList<>();
-                String[] splits = sb.toString().split("[:,;]");
-                for (String split : splits) {
-                    if (split.endsWith("*")) {
-                        Files.list(Paths.get(split.substring(0, split.length() - 1)))
-                                .map(p -> p.toAbsolutePath().toString())
-                                .forEach(hcp::add);
-                    } else {
-                        hcp.add(split);
-                    }
-                }
-                return hcp;
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
-                throw new RuntimeException(e);
-            } finally {
-                if (reader != null) {
-                    try {
-                        reader.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        } catch (IOException | InterruptedException e) {
-            // e.printStackTrace();
-            return Collections.emptyList();
-        }
-    }
-
-    private static List<String> getSparkClasspath() {
-        String sparkHome = System.getenv("SPARK_HOME");
-        try {
-            return Files.list(Paths.get(sparkHome, "lib"))
-                    .map(p -> p.toAbsolutePath().toString())
-                    .collect(Collectors.toList());
-        } catch (IOException e) {
-            e.printStackTrace();
-            return Collections.emptyList();
-        }
     }
 
     public static int getPID() {

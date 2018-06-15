@@ -47,7 +47,7 @@ public enum TaskType {
             return "(nohup " + env
                     + " && hadoop jar " + ClassUtils.findJar(TaskExecutor.class)
                     + " " + TaskExecutor.class.getName()
-                    + " -libjars " + SystemUtils.CLASSPATH.replaceAll("[;:]", ",")
+                    + " -libjars " + SystemUtils.ATHENA_CLASSPATH.replaceAll("[;:]", ",")
                     + files
                     + " " + params
                     + redirectOut
@@ -65,10 +65,10 @@ public enum TaskType {
             String athenaFilePath = FileUtils.getResourceFile("athena.properties").getAbsolutePath();
             String athenaDefaultFilePath = FileUtils.getResourceFile("athena-default.properties").getAbsolutePath();
             String files = String.format(" --files %s,%s ", athenaFilePath, athenaDefaultFilePath);
-            return "(nohup spark-submit --master yarn-client  " +
+            return "(nohup spark-submit --master yarn-cluster  " +
                     " --conf spark.yarn.submit.waitAppCompletion=false " +
                     " --class " + TaskExecutor.class.getName() +
-                    " --jars " + SystemUtils.CLASSPATH.replaceAll("[;:]", ",")
+                    " --jars " + SystemUtils.ATHENA_CLASSPATH.replaceAll("[;:]", ",")
                     + files
                     + " " + ClassUtils.findJar(TaskExecutor.class)
                     + " " + params
@@ -89,7 +89,7 @@ public enum TaskType {
 
             return "(nohup flink run -m yarn-cluster -yn 3 -yjm 4096 -ytm 4096 -ys 8 -yd " +
                     " -c " + TaskExecutor.class.getName() +
-                    " -yj " + SystemUtils.CLASSPATH.replaceAll("[;:]", ",")
+                    " -yj " + SystemUtils.ATHENA_CLASSPATH.replaceAll("[;:]", ",")
                     + files
                     + " " + ClassUtils.findJar(TaskExecutor.class)
                     + " " + params

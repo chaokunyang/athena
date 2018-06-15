@@ -20,7 +20,11 @@ public class SystemUtils {
     public static boolean IS_WINDOWS = OS_NAME.startsWith("WINDOWS");
     public static String WORK_DIR;
     public static String ENCODING;
+    public static Set<String> HADOOP_CLASSPATH = ClassUtils.getHadoopClasspath();
+    public static Set<String> SPARK_CLASSPATH = ClassUtils.getSparkClasspath();
+    public static Set<String> CLASSPATH_SET = ClassUtils.getCurrentClasspath();
     public static String CLASSPATH;
+    public static String ATHENA_CLASSPATH;
     public static String HOSTNAME;
     public static Set<String> LOCAL_ADDRESSES;
 
@@ -31,13 +35,20 @@ public class SystemUtils {
         ENCODING = getEncoding();
         LOGGER.info("encoding: " + ENCODING);
 
-        CLASSPATH = getCurrentClasspath();
+        String split = IS_WINDOWS ? ";" : ":";
+        CLASSPATH = CLASSPATH_SET.stream().collect(Collectors.joining(split));
         LOGGER.info("classpath: " + CLASSPATH);
 
-        HOSTNAME = getHostname();
+        LinkedHashSet<String> athenaClasspath = new LinkedHashSet<>(CLASSPATH_SET);
+        athenaClasspath.removeAll(HADOOP_CLASSPATH);
+        athenaClasspath.removeAll(SPARK_CLASSPATH);
+        ATHENA_CLASSPATH = athenaClasspath.stream().collect(Collectors.joining(split));
+
+
+        HOSTNAME = NetworkUtils.getHostname();
         LOGGER.info("hostname: " + HOSTNAME);
 
-        LOCAL_ADDRESSES = getLocalAddresses();
+        LOCAL_ADDRESSES = NetworkUtils.getLocalAddresses();
         LOGGER.info("local addresses: " + LOCAL_ADDRESSES);
     }
 
@@ -61,58 +72,9 @@ public class SystemUtils {
         return workDir;
     }
 
-    public static String getCurrentClasspath() {
-        // return System.getProperty("java.class.path");
-        // return System.getProperty("java.class.path");
-
-        ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
-        URL[] urls = ((URLClassLoader)systemClassLoader).getURLs();
-        Set<URL> cp = new LinkedHashSet<>(Arrays.asList(urls));
-
-        ClassLoader classLoader = SystemUtils.class.getClassLoader();
-        if (classLoader instanceof  URLClassLoader) {
-            URLClassLoader urlClassLoader = (URLClassLoader) classLoader;
-            cp.addAll(Arrays.asList(urlClassLoader.getURLs()));
-        }
-
-        String split = IS_WINDOWS ? ";" : ":";
-        return cp.stream().map(url -> {
-            try {
-                return new File((url.toURI())).getAbsolutePath();
-            } catch (URISyntaxException e) {
-                throw new IllegalStateException();
-            }
-        }).collect(Collectors.joining(split));
-    }
-
     public static String getEncoding() {
         // String encoding = System.getProperty("file.encoding");
         return Charset.defaultCharset().name();
     }
 
-    public static String getHostname() {
-        try {
-            return InetAddress.getLocalHost().getHostName();
-        } catch (UnknownHostException e) {
-            throw new RuntimeException("Can't get hostname", e);
-        }
-    }
-
-    public static Set<String> getLocalAddresses() {
-        Set<String> addresses = new HashSet<>();
-        try {
-            List<NetworkInterface> networkInterfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
-            for (NetworkInterface ifc : networkInterfaces) {
-                if (ifc.isUp()) {
-                    for (InetAddress address : Collections.list(ifc.getInetAddresses())) {
-                        addresses.add(address.getHostAddress());
-                    }
-                }
-            }
-        } catch (SocketException e) {
-            e.printStackTrace();
-        }
-
-        return addresses;
-    }
 }
