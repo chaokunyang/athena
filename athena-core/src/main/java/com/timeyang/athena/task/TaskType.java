@@ -6,6 +6,8 @@ import com.timeyang.athena.util.ClassUtils;
 import com.timeyang.athena.util.FileUtils;
 import com.timeyang.athena.util.SystemUtils;
 
+import java.util.stream.Collectors;
+
 /**
  * Task type
  *
@@ -33,21 +35,29 @@ public enum TaskType {
         @Override
         public String getTaskCmd(TaskInfo task, String taskRpcHost, int taskRpcPort) {
             Long taskId = task.getTaskId();
+            String initCmd = TaskUtils.getTaskInitCmd(task.getTaskId());
+            String taskLogFilePath = TaskUtils.getTaskLogFilePath(taskId);
             String params = " --taskId " + taskId
                     + " --taskManagerHost " + taskRpcHost
                     + " --taskManagerPort " + taskRpcPort
-                    + " --taskFilePath " + TaskUtils.getTaskLogFilePath(taskId)
+                    + " --taskFilePath " + taskLogFilePath
                     + " " + task.getParams();
+
+            String mainJar = ClassUtils.findJar(TaskExecutor.class);
+            String jars = SystemUtils.ATHENA_JARS.stream()
+                    .filter(jar -> !jar.equals(mainJar))
+                    .collect(Collectors.joining(","));
+
             String athenaFilePath = FileUtils.getResourceFile("athena.properties").getAbsolutePath();
             String athenaDefaultFilePath = FileUtils.getResourceFile("athena-default.properties").getAbsolutePath();
             String files = String.format(" -files %s,%s ", athenaFilePath, athenaDefaultFilePath);
 
-            String redirectOut = " >" + TaskUtils.getTaskLogFilePath(taskId);
+            String redirectOut = " >" + taskLogFilePath;
             String env = "export HADOOP_CLASSPATH=" + SystemUtils.CLASSPATH;
-            return "(nohup " + env
+            return initCmd + " && (nohup " + env
                     + " && hadoop jar " + ClassUtils.findJar(TaskExecutor.class)
-                    + " " + TaskExecutor.class.getName()
-                    + " -libjars " + SystemUtils.ATHENA_CLASSPATH.replaceAll("[;:]", ",")
+                    + " " + mainJar
+                    + " -libjars " + jars
                     + files
                     + " " + params
                     + redirectOut
@@ -57,43 +67,65 @@ public enum TaskType {
     SPARK {
         @Override
         public String getTaskCmd(TaskInfo task, String taskRpcHost, int taskRpcPort) {
+            Long taskId = task.getTaskId();
+            String initCmd = TaskUtils.getTaskInitCmd(task.getTaskId());
+            String taskLogFilePath = TaskUtils.getTaskLogFilePath(taskId);
             String params = " --taskId " + task.getTaskId()
                     + " --taskManagerHost " + taskRpcHost
                     + " --taskManagerPort " + taskRpcPort
                     + " " + task.getParams();
 
+            String mainJar = ClassUtils.findJar(TaskExecutor.class);
+            String jars = SystemUtils.ATHENA_JARS.stream()
+                    .filter(jar -> !jar.equals(mainJar))
+                    .collect(Collectors.joining(","));
+
             String athenaFilePath = FileUtils.getResourceFile("athena.properties").getAbsolutePath();
             String athenaDefaultFilePath = FileUtils.getResourceFile("athena-default.properties").getAbsolutePath();
-            String files = String.format(" --files %s,%s ", athenaFilePath, athenaDefaultFilePath);
-            return "(nohup spark-submit --master yarn-cluster  " +
+            String files = String.format(" -files %s,%s ", athenaFilePath, athenaDefaultFilePath);
+
+            String redirectOut = " >" + taskLogFilePath;
+            return initCmd + " && (nohup spark-submit --master yarn-cluster  " +
                     " --conf spark.yarn.submit.waitAppCompletion=false " +
                     " --class " + TaskExecutor.class.getName() +
-                    " --jars " + SystemUtils.ATHENA_CLASSPATH.replaceAll("[;:]", ",")
+                    " --jars " + jars
                     + files
-                    + " " + ClassUtils.findJar(TaskExecutor.class)
+                    + " " + mainJar
                     + " " + params
-                    + " >/dev/null 2>&1 &)";
+                    + redirectOut
+                    + " 2>&1 &)";
         }
     },
     FLINK {
         @Override
         public String getTaskCmd(TaskInfo task, String taskRpcHost, int taskRpcPort) {
+            Long taskId = task.getTaskId();
+            String initCmd = TaskUtils.getTaskInitCmd(task.getTaskId());
+
+            String taskLogFilePath = TaskUtils.getTaskLogFilePath(taskId);
             String params = " --taskId " + task.getTaskId()
                     + " --taskManagerHost " + taskRpcHost
                     + " --taskManagerPort " + taskRpcPort
                     + " " + task.getParams();
 
+            String mainJar = ClassUtils.findJar(TaskExecutor.class);
+            String jars = SystemUtils.ATHENA_JARS.stream()
+                    .filter(jar -> !jar.equals(mainJar))
+                    .collect(Collectors.joining(","));
+
             String athenaFilePath = FileUtils.getResourceFile("athena.properties").getAbsolutePath();
             String athenaDefaultFilePath = FileUtils.getResourceFile("athena-default.properties").getAbsolutePath();
             String files = String.format(" -yt %s,%s ", athenaFilePath, athenaDefaultFilePath);
 
-            return "(nohup flink run -m yarn-cluster -yn 3 -yjm 4096 -ytm 4096 -ys 8 -yd " +
+            String redirectOut = " >" + taskLogFilePath;
+            return initCmd + " && (nohup flink run -m yarn-cluster -yn 3 -yjm 4096 -ytm 4096 -ys 8 -yd " +
                     " -c " + TaskExecutor.class.getName() +
-                    " -yj " + SystemUtils.ATHENA_CLASSPATH.replaceAll("[;:]", ",")
+                    " -yj " + jars
                     + files
-                    + " " + ClassUtils.findJar(TaskExecutor.class)
+                    + " " + mainJar
                     + " " + params
-                    + " >/dev/null 2>&1 &)";
+                    + redirectOut
+                    + " 2>&1 &)";
         }
     };
 

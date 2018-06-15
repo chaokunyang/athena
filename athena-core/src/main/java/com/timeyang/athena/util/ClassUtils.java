@@ -130,10 +130,13 @@ public class ClassUtils {
                 for (String split : splits) {
                     if (split.endsWith("*")) {
                         Files.list(Paths.get(split.substring(0, split.length() - 1)))
+                                .filter(path -> Files.exists(path))
                                 .map(p -> p.toAbsolutePath().toString())
                                 .forEach(hcp::add);
                     } else {
-                        hcp.add(split);
+                        if (Files.exists(Paths.get(split))) {
+                            hcp.add(split);
+                        }
                     }
                 }
                 return hcp;
@@ -159,7 +162,13 @@ public class ClassUtils {
         String sparkHome = System.getenv("SPARK_HOME");
         try {
             return Files.list(Paths.get(sparkHome, "lib"))
-                    .map(p -> p.toAbsolutePath().toString())
+                    .map(p -> {
+                        try {
+                            return p.toRealPath().toAbsolutePath().toString();
+                        } catch (java.io.IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    })
                     .collect(Collectors.toSet());
         } catch (IOException e) {
             e.printStackTrace();

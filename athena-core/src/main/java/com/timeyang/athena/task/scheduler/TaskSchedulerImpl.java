@@ -156,11 +156,18 @@ public class TaskSchedulerImpl implements TaskScheduler {
             List<RunningTask> tasks = pagedResult.getElements();
             tasks.forEach(taskInfo -> {
                 Task task = TaskUtils.createTask(taskInfo.getClassName(), ParametersUtils.fromArgs(taskInfo.getParams()).get());
-                task.onLost(TaskContextImpl.makeTaskContext(taskInfo.getTaskId()));
+                Long taskId = taskInfo.getTaskId();
+                try {
+                    task.onLost(TaskContextImpl.makeTaskContext(taskId));
+                } catch (Throwable e) {
+                    String msg = String.format("Call onLost method for task [%s] [%s]  failed", taskId, task);
+                    LOGGER.warn(msg, e);
+                }
+
                 // if task is not running(maybe system restarted), schedule the task
-                if (!taskBackend.isTaskRunning(taskInfo.getTaskId()) &&
+                if (!taskBackend.isTaskRunning(taskId) &&
                         taskInfo.getTryNumber() < taskInfo.getMaxTries()) {
-                    LOGGER.info("task {} in table {} is not running, start it", taskInfo.getTaskId(), TaskRepository.RUNNING_TASK_TABLE);
+                    LOGGER.info("task {} in table {} is not running, start it", taskId, TaskRepository.RUNNING_TASK_TABLE);
 
                     schedule(taskInfo);
                 } else {

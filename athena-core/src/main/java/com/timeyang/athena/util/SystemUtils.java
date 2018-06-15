@@ -4,6 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -22,7 +24,7 @@ public class SystemUtils {
     public static Set<String> SPARK_CLASSPATH = ClassUtils.getSparkClasspath();
     public static Set<String> CLASSPATH_SET = ClassUtils.getCurrentClasspath();
     public static String CLASSPATH;
-    public static String ATHENA_CLASSPATH;
+    public static List<String> ATHENA_JARS;
     public static String HOSTNAME;
     public static Set<String> LOCAL_ADDRESSES;
 
@@ -40,7 +42,10 @@ public class SystemUtils {
         LinkedHashSet<String> athenaClasspath = new LinkedHashSet<>(CLASSPATH_SET);
         athenaClasspath.removeAll(HADOOP_CLASSPATH);
         athenaClasspath.removeAll(SPARK_CLASSPATH);
-        ATHENA_CLASSPATH = athenaClasspath.stream().collect(Collectors.joining(split));
+        ATHENA_JARS = athenaClasspath.stream()
+                .filter(cp -> cp.endsWith(".jar"))
+                .filter(jar -> Files.exists(Paths.get(jar)))
+                .collect(Collectors.toList());
 
 
         HOSTNAME = NetworkUtils.getHostname();

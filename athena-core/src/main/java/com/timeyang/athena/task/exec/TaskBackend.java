@@ -142,22 +142,31 @@ public class TaskBackend {
         }
         taskInstances.put(taskId, task);
 
-        LOGGER.info("init task [{}]", taskId);
-        task.init(TaskContextImpl.makeTaskContext(taskId));
+        try {
+            LOGGER.info("init task [{}]", taskId);
+            task.init(TaskContextImpl.makeTaskContext(taskId));
+            LOGGER.info("init task [{}] succeed", taskId);
+        } catch (Throwable throwable) {
+            LOGGER.error("init task [{}] failed", taskId, throwable);
+            taskCallback.onFailure(taskId);
+            startingTaskIds.remove(taskId);
+            taskInstances.remove(taskId);
+            return false;
+        }
 
         String taskCmd = TaskUtils.getTaskCmd(taskInfo, host, port);
         LOGGER.info("Starting task. task_start_cmd: [{}]", taskCmd);
-        Result exec = CmdUtils.exec(taskInfo.getHost(), taskCmd);
-        if (StringUtils.hasLength(exec.getOut()))
-            LOGGER.info("task cmd output: " + exec.getOut());
-        if (StringUtils.hasLength(exec.getError())) {
-            LOGGER.warn("task error output: " + exec.getError());
+        Result result = CmdUtils.exec(taskInfo.getHost(), taskCmd);
+        if (StringUtils.hasLength(result.getOut()))
+            LOGGER.info("task cmd output: " + result.getOut());
+        if (StringUtils.hasLength(result.getError())) {
+            LOGGER.warn("task error output: " + result.getError());
         }
 
-        if (exec.isSucceed()) {
-            LOGGER.info("task_start_cmd of task [{}] executed, exit code {}", taskId, exec.getExitCode());
+        if (result.isSucceed()) {
+            LOGGER.info("task_start_cmd of task [{}] executed, exit code {}", taskId, result.getExitCode());
         } else {
-            LOGGER.error("Execute task_cmd [{}] failed, exit code {}. Move task to finished", taskCmd, exec.getExitCode());
+            LOGGER.error("Execute task_cmd [{}] failed, exit code {}. Move task to finished", taskCmd, result.getExitCode());
 
             taskCallback.onFailure(taskId);
             startingTaskIds.remove(taskId);
