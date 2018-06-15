@@ -17,6 +17,7 @@ import javax.sql.DataSource;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Future;
 
 /**
@@ -125,12 +126,29 @@ public class TaskManagerImpl implements TaskManager {
     public boolean isTaskFinished(long taskId) {
         FinishedTask finishedTask = this.taskRepository.getFinishedTask(taskId);
         // return true for if task finished or not exists
-        return finishedTask != null || (this.taskRepository.getWaitingTask(taskId) == null && this.taskRepository.getRunningTask(taskId) == null);
+        boolean isFinished = finishedTask != null ||
+                (this.taskRepository.getWaitingTask(taskId) == null && !this.taskRepository.getRunningTask(taskId).isPresent());
+
+        LOGGER.info("task [{}] is finished: {}", isFinished);
+        return isFinished;
     }
 
     @Override
     public List<String> getLogLines(long taskId, int lineNumber, int rows) {
         return this.taskScheduler.getLogLines(taskId, lineNumber, rows);
+    }
+
+    @Override
+    public TaskInfo getTask(long taskId) {
+        WaitingTask waitingTask = taskRepository.getWaitingTask(taskId);
+        if (waitingTask != null) {
+            return waitingTask;
+        }
+        Optional<RunningTask> runningTaskOptional = taskRepository.getRunningTask(taskId);
+        if (runningTaskOptional.isPresent()) {
+            return runningTaskOptional.get();
+        }
+        return taskRepository.getFinishedTask(taskId);
     }
 
     @Override

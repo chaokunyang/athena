@@ -80,6 +80,8 @@ public interface TaskManager {
      */
     List<String> getLogLines(long taskId, int lineNumber, int rows);
 
+    TaskInfo getTask(long taskId);
+
     PagedResult<WaitingTask> getWaitingTasks(Page page);
 
     PagedResult<RunningTask> getRunningTasks(Page page);
