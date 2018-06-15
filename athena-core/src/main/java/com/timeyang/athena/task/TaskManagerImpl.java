@@ -7,9 +7,9 @@ import com.timeyang.athena.task.TaskInfo.WaitingTask;
 import com.timeyang.athena.task.exec.TaskFactory;
 import com.timeyang.athena.task.scheduler.TaskScheduler;
 import com.timeyang.athena.task.scheduler.TaskSchedulerImpl;
-import com.timeyang.athena.utill.jdbc.Page;
-import com.timeyang.athena.utill.jdbc.PagedResult;
-import com.timeyang.athena.utill.ParametersUtils;
+import com.timeyang.athena.util.jdbc.Page;
+import com.timeyang.athena.util.jdbc.PagedResult;
+import com.timeyang.athena.util.ParametersUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

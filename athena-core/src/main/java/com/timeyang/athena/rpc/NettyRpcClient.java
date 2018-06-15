@@ -1,6 +1,6 @@
 package com.timeyang.athena.rpc;
 
-import com.timeyang.athena.utill.SystemUtils;
+import com.timeyang.athena.util.SystemUtils;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.epoll.EpollEventLoopGroup;

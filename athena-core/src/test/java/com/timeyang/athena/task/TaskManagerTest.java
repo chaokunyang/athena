@@ -3,8 +3,8 @@ package com.timeyang.athena.task;
 import com.timeyang.athena.Athena;
 import com.timeyang.athena.AthenaConf;
 import com.timeyang.athena.task.exec.TaskUtils;
-import com.timeyang.athena.utill.IoUtils;
-import com.timeyang.athena.utill.SystemUtils;
+import com.timeyang.athena.util.IoUtils;
+import com.timeyang.athena.util.SystemUtils;
 import org.junit.Before;
 import org.junit.Test;
 

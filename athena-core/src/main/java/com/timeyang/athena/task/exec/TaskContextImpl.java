@@ -1,7 +1,7 @@
 package com.timeyang.athena.task.exec;
 
-import com.timeyang.athena.utill.Config;
-import com.timeyang.athena.utill.SerializableConfiguration;
+import com.timeyang.athena.util.Config;
+import com.timeyang.athena.util.SerializableConfiguration;
 import org.apache.hadoop.conf.Configuration;
 
 import java.io.Serializable;

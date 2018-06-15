@@ -2,10 +2,10 @@ package com.timeyang.athena.task.exec;
 
 import com.timeyang.athena.AthenaConf;
 import com.timeyang.athena.task.TaskInfo;
-import com.timeyang.athena.utill.NetworkUtils;
-import com.timeyang.athena.utill.ThreadUtils;
-import com.timeyang.athena.utill.cmd.CmdUtils;
-import com.timeyang.athena.utill.SystemUtils;
+import com.timeyang.athena.util.NetworkUtils;
+import com.timeyang.athena.util.ThreadUtils;
+import com.timeyang.athena.util.cmd.CmdUtils;
+import com.timeyang.athena.util.SystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

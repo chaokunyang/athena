@@ -1,6 +1,6 @@
 package com.timeyang.athena.rpc;
 
-import com.timeyang.athena.utill.SystemUtils;
+import com.timeyang.athena.util.SystemUtils;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.epoll.EpollEventLoopGroup;
@@ -14,9 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 
 import static com.timeyang.athena.rpc.Message.*;
 

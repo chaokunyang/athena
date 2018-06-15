@@ -1,21 +1,29 @@
 package com.timeyang.athena.task.exec;
 
-import com.timeyang.athena.utill.*;
+import com.timeyang.athena.util.ClassLoaderUtils;
+import com.timeyang.athena.util.ClassUtils;
+import com.timeyang.athena.util.IoUtils;
+import com.timeyang.athena.util.ParametersUtils;
+import com.timeyang.athena.util.ReflectionUtils;
+import com.timeyang.athena.util.StringUtils;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 
 /**
@@ -84,8 +92,27 @@ public class TaskExecutorLauncher {
         return urls;
     }
 
-    private static URLClassLoader createClassLoader(URL[] urls) {
-        return new ClassLoaderUtils.ChildFirstURLClassLoader(urls, TaskExecutorLauncher.class.getClassLoader());
+    private static URLClassLoader createClassLoader(URL[] urls, String jars, ClassLoader parent) {
+        ClassLoaderUtils.ChildFirstURLClassLoader mainClassLoader = new ClassLoaderUtils.ChildFirstURLClassLoader(urls, parent);
+        if (StringUtils.hasText(jars)) {
+            return createHdfsClassLoader(Arrays.asList(jars.split(",")), mainClassLoader);
+        }
+
+        return mainClassLoader;
+    }
+
+    private static URLClassLoader createHdfsClassLoader(List<String> jars, ClassLoader parent) {
+        try {
+            Class<?> aClass = parent.loadClass("com.timeyang.athena.util.hdfs.HdfsClassLoader");
+            Method method = aClass.getDeclaredMethod("load", String.class, List.class);
+            Object hdfsClassLoader = method.invoke(null, "HdfsClassLoader", jars);
+            return (URLClassLoader) hdfsClassLoader;
+        } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
+            info("failed create HdfsClassLoader with jars " +
+                    jars + " and parentClassLoader " + parent);
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
     }
 
     public static int getPID() {
@@ -110,13 +137,16 @@ public class TaskExecutorLauncher {
         String taskFilePath = parametersUtils.get("taskFilePath");
         String mainClasspath = System.getProperty("java.class.path");
         String classpathFile = parametersUtils.get("classpathFile");
+        String jars = parametersUtils.get("jars");
         URL[] classpath = getClassPath(mainClasspath, classpathFile);
 
         info("mainClasspath: " + mainClasspath);
         info("classpathFile: " + classpathFile);
+        info("jars: " + jars);
         info("classpath: " + Arrays.asList(classpath));
 
-        URLClassLoader urlClassLoader = createClassLoader(classpath);
+        URLClassLoader urlClassLoader = createClassLoader(classpath, jars,
+                TaskExecutorLauncher.class.getClassLoader());
         Thread.currentThread().setContextClassLoader(urlClassLoader);
         try {
             Class<?> executorClass = urlClassLoader.loadClass(TASK_EXECUTOR_NAME);

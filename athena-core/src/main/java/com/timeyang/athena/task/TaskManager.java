@@ -4,8 +4,8 @@ import com.timeyang.athena.task.TaskInfo.FinishedTask;
 import com.timeyang.athena.task.TaskInfo.RunningTask;
 import com.timeyang.athena.task.TaskInfo.WaitingTask;
 import com.timeyang.athena.task.exec.TaskFactory;
-import com.timeyang.athena.utill.jdbc.Page;
-import com.timeyang.athena.utill.jdbc.PagedResult;
+import com.timeyang.athena.util.jdbc.Page;
+import com.timeyang.athena.util.jdbc.PagedResult;
 
 import java.util.List;
 import java.util.Map;

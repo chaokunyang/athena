@@ -2,7 +2,7 @@ package com.timeyang.athena.web;
 
 import com.timeyang.athena.AthenaConf;
 import com.timeyang.athena.AthenaException;
-import com.timeyang.athena.utill.FileUtils;
+import com.timeyang.athena.util.FileUtils;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.DefaultHandler;

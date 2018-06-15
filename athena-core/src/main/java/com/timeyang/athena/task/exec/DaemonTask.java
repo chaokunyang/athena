@@ -4,9 +4,9 @@ import com.timeyang.athena.AthenaException;
 import com.timeyang.athena.rpc.RpcAddress;
 import com.timeyang.athena.rpc.RpcEndpoint;
 import com.timeyang.athena.rpc.RpcEnv;
-import com.timeyang.athena.utill.IoUtils;
-import com.timeyang.athena.utill.cmd.CmdUtils;
-import com.timeyang.athena.utill.cmd.Command;
+import com.timeyang.athena.util.IoUtils;
+import com.timeyang.athena.util.cmd.CmdUtils;
+import com.timeyang.athena.util.cmd.Command;
 
 import java.io.IOException;
 import java.io.Serializable;

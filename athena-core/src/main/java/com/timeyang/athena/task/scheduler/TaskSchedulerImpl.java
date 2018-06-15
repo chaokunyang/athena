@@ -9,11 +9,10 @@ import com.timeyang.athena.task.TaskRepository;
 import com.timeyang.athena.task.TaskState;
 import com.timeyang.athena.task.TaskType;
 import com.timeyang.athena.task.exec.*;
-import com.timeyang.athena.utill.ParametersUtils;
-import com.timeyang.athena.utill.ThreadUtils;
-import com.timeyang.athena.utill.jdbc.Page;
-import com.timeyang.athena.utill.StringUtils;
-import com.timeyang.athena.utill.jdbc.PagedResult;
+import com.timeyang.athena.util.ParametersUtils;
+import com.timeyang.athena.util.ThreadUtils;
+import com.timeyang.athena.util.jdbc.Page;
+import com.timeyang.athena.util.jdbc.PagedResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +32,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
     private static final Logger LOGGER = LoggerFactory.getLogger(TaskSchedulerImpl.class);
     private static final long SCHEDULE_INTERVAL_SECONDS = 1;
     private static final long AWAIT_TERMINATION_SECONDS = 5;
-    private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2, ThreadUtils.createThreadFactory("TaskScheduler"));
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(10, ThreadUtils.createThreadFactory("TaskScheduler"));
 
     private final AthenaConf athenaConf;
     private final TaskRepository taskRepository;

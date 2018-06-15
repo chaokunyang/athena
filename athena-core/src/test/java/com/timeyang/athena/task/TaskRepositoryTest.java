@@ -1,9 +1,9 @@
 package com.timeyang.athena.task;
 
 import com.timeyang.athena.Athena;
-import com.timeyang.athena.utill.jdbc.Criterion;
-import com.timeyang.athena.utill.jdbc.Page;
-import com.timeyang.athena.utill.jdbc.PagedResult;
+import com.timeyang.athena.util.jdbc.Criterion;
+import com.timeyang.athena.util.jdbc.Page;
+import com.timeyang.athena.util.jdbc.PagedResult;
 import org.junit.Before;
 import org.junit.Test;
 

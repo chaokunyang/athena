@@ -4,7 +4,7 @@ import com.timeyang.athena.AthenaException;
 import com.timeyang.athena.task.TaskInfo.FinishedTask;
 import com.timeyang.athena.task.TaskInfo.RunningTask;
 import com.timeyang.athena.task.TaskInfo.WaitingTask;
-import com.timeyang.athena.utill.jdbc.*;
+import com.timeyang.athena.util.jdbc.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,7 +15,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static com.timeyang.athena.utill.jdbc.FieldSetter.makeSetter;
+import static com.timeyang.athena.util.jdbc.FieldSetter.makeSetter;
 
 /**
  * access database to get all kinds of task

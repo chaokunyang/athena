@@ -1,6 +1,6 @@
 package com.timeyang.athena;
 
-import com.timeyang.athena.utill.FileUtils;
+import com.timeyang.athena.util.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
