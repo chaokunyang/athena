@@ -10,6 +10,9 @@ cd ${ATHENA_HOME}
 
 HADOOP_CLASSPATH=`hadoop classpath`
 SPARK_CLASSPATH="$SPARK_HOME/lib/*"
+if [ ! -d ${SPARK_HOME}/lib ]; then
+    SPARK_CLASSPATH=${SPARK_HOME}/jars/*
+fi
 
 cp=".:${ATHENA_HOME}/lib/*:${ATHENA_HOME}/conf:${HADOOP_CLASSPATH}:$SPARK_CLASSPATH"
 echo CLASSPATH: ${cp}

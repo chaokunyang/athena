@@ -11,6 +11,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
@@ -160,8 +161,12 @@ public class ClassUtils {
 
     public static Set<String> getSparkClasspath() {
         String sparkHome = System.getenv("SPARK_HOME");
+        Path libPath = Paths.get(sparkHome, "lib");
+        if (!Files.exists(libPath)) {
+            libPath = Paths.get(sparkHome, "jars");
+        }
         try {
-            return Files.list(Paths.get(sparkHome, "lib"))
+            return Files.list(libPath)
                     .map(p -> {
                         try {
                             return p.toRealPath().toAbsolutePath().toString();

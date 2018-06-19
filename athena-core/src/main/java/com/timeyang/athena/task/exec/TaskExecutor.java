@@ -119,6 +119,8 @@ public class TaskExecutor {
         try {
             latch.await();
             try {
+                LOGGER.info("task instance: " + task);
+                LOGGER.info("taskContext: " + taskContext);
                 task.exec(taskContext);
                 LOGGER.info("task [{}] execute succeed", taskContext.taskId());
                 try {
