@@ -12,6 +12,7 @@
         <module>athena-core</module>
         <module>athena-core</module>
         <module>athena-dist</module>
+        <module>athena-deploy</module>
     </modules>
 
     <properties>
@@ -395,6 +396,11 @@
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
                 <version>1.10</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.oshi</groupId>
+                <artifactId>oshi-core</artifactId>
+                <version>3.6.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
