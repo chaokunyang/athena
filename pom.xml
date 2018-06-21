@@ -10,7 +10,6 @@
     <version>1.0-SNAPSHOT</version>
     <modules>
         <module>athena-core</module>
-        <module>athena-core</module>
         <module>athena-dist</module>
         <module>athena-deploy</module>
     </modules>
@@ -401,6 +400,11 @@
                 <groupId>com.github.oshi</groupId>
                 <artifactId>oshi-core</artifactId>
                 <version>3.6.0</version>
+            </dependency>
+            <dependency>
+                <groupId>dom4j</groupId>
+                <artifactId>dom4j</artifactId>
+                <version>1.6.1</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
