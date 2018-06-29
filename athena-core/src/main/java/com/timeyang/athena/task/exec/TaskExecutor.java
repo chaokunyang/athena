@@ -59,6 +59,7 @@ public class TaskExecutor {
     private LogInspection logInspection;
     // wait TaskManager send task object to TaskExecutor, and synchronizes memory
     private CountDownLatch latch = new CountDownLatch(1);
+    private volatile boolean closed = false;
 
     public TaskExecutor(long taskId, String taskManagerHost, int taskManagerPort, String taskFilePath) {
         this.taskId = taskId;
@@ -109,6 +110,7 @@ public class TaskExecutor {
 
     public void stop() {
         if (channel != null) {
+            closed = true;
             channel.close().syncUninterruptibly();
         }
         group.shutdownGracefully();
@@ -194,8 +196,10 @@ public class TaskExecutor {
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-            LOGGER.error("Connection between taskExecutor and taskManager is disconnected. Exit taskExecutor now");
-            System.exit(0);
+            if (!closed) {
+                LOGGER.error("Connection between taskExecutor and taskManager is disconnected. Exit taskExecutor now");
+                System.exit(0);
+            }
         }
 
         @Override
