@@ -154,8 +154,18 @@ public class TaskSchedulerImpl implements TaskScheduler {
             PagedResult<RunningTask> pagedResult = taskRepository.getRunningTasks(new Page(0, Integer.MAX_VALUE));
             LOGGER.info("There's {} tasks waiting to be scheduled", pagedResult.getTotalSize());
             List<RunningTask> tasks = pagedResult.getElements();
-            tasks.forEach(taskInfo -> {
-                Task task = TaskUtils.createTask(taskInfo.getClassName(), ParametersUtils.fromArgs(taskInfo.getParams()).get());
+            for (RunningTask taskInfo : tasks) {
+                Task task;
+                try {
+                    task = TaskUtils.createTask(taskInfo.getClassName(), ParametersUtils.fromArgs(taskInfo.getParams()).get());
+                } catch (RuntimeException e) {
+                    LOGGER.error("Create task [{}] failed, move task to finished", taskInfo.getTaskId());
+                    FinishedTask finishedTask = new FinishedTask(taskInfo);
+                    finishedTask.setState(TaskState.FAILED);
+                    taskRepository.moveToFinished(finishedTask);
+                    continue;
+                }
+
                 Long taskId = taskInfo.getTaskId();
                 try {
                     task.onLost(TaskContextImpl.makeTaskContext(taskId));
@@ -168,14 +178,13 @@ public class TaskSchedulerImpl implements TaskScheduler {
                 if (!taskBackend.isTaskRunning(taskId) &&
                         taskInfo.getTryNumber() < taskInfo.getMaxTries()) {
                     LOGGER.info("task {} in table {} is not running, start it", taskId, TaskRepository.RUNNING_TASK_TABLE);
-
                     schedule(taskInfo);
                 } else {
                     FinishedTask finishedTask = new FinishedTask(taskInfo);
                     finishedTask.setState(TaskState.FAILED);
                     taskRepository.moveToFinished(finishedTask);
                 }
-            });
+            }
             LOGGER.info("Check running tasks finished");
         } catch (Throwable throwable) {
             LOGGER.error(throwable.getMessage(), throwable);
