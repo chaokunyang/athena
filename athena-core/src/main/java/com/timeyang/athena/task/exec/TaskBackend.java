@@ -134,7 +134,7 @@ public class TaskBackend {
         try {
             task = TaskUtils.createTask(className, ParametersUtils.fromArgs(taskInfo.getParams()).get());
         } catch (RuntimeException e) {
-            LOGGER.error("Create task [{}] failed, move task to finished", taskId);
+            LOGGER.error("Create task [{}] failed, move task to finished", taskId, e);
             taskCallback.onFailure(taskId);
             startingTaskIds.remove(taskId);
             taskInstances.remove(taskId);

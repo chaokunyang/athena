@@ -159,7 +159,7 @@ public class TaskSchedulerImpl implements TaskScheduler {
                 try {
                     task = TaskUtils.createTask(taskInfo.getClassName(), ParametersUtils.fromArgs(taskInfo.getParams()).get());
                 } catch (RuntimeException e) {
-                    LOGGER.error("Create task [{}] failed, move task to finished", taskInfo.getTaskId());
+                    LOGGER.error("Create task [{}] failed, move task to finished", taskInfo.getTaskId(), e);
                     FinishedTask finishedTask = new FinishedTask(taskInfo);
                     finishedTask.setState(TaskState.FAILED);
                     taskRepository.moveToFinished(finishedTask);
