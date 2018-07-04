@@ -56,6 +56,7 @@ public class TaskBackend {
             new DefaultChannelGroup(ImmediateEventExecutor.INSTANCE);
     // remote task handles
     private final ConcurrentMap<Long, RemoteTaskHandle> remoteTasks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Channel, Long> channelMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<Long, Task> taskInstances = new ConcurrentHashMap<>();
     private final Set<Long> startingTaskIds = ConcurrentHashMap.newKeySet();
 
@@ -104,6 +105,14 @@ public class TaskBackend {
     public void stop() {
         ChannelGroupFuture channelGroupFuture = channelGroup.writeAndFlush(new TaskMessage.KillTask());
         channelGroupFuture.syncUninterruptibly();
+        channelGroupFuture.forEach(f -> {
+            if (f.isSuccess()) {
+                Long taskId = channelMap.get(f.channel());
+                Task task = taskInstances.get(taskId);
+                TaskContext taskContext = TaskContextImpl.makeTaskContext(taskId);
+                task.onKilled(taskContext);
+            }
+        });
 
         if (serverChannel != null) {
             serverChannel.close().syncUninterruptibly();
@@ -182,7 +191,12 @@ public class TaskBackend {
             Channel channel = remoteTaskHandle.getChannel();
             ChannelFuture channelFuture = channel.writeAndFlush(new TaskMessage.KillTask());
             channelFuture.addListener((ChannelFutureListener) future -> {
+                Task task = taskInstances.get(taskId);
+                TaskContext taskContext = TaskContextImpl.makeTaskContext(taskId);
+                task.onKilled(taskContext);
+
                 removeTaskInfo(taskId);
+                startingTaskIds.remove(taskId);
                 future.channel().close();
                 runnable.run();
             });
@@ -239,6 +253,7 @@ public class TaskBackend {
             RemoteTaskHandle remoteTaskHandle =
                     new RemoteTaskHandle(taskId, pid, ctx.channel());
             remoteTasks.put(taskId, remoteTaskHandle);
+            channelMap.put(ctx.channel(), taskId);
 
             LOGGER.info("task [{}] hand shake finished, remove TaskHandShakeHandler from pipeline, fire TaskStarted event", taskId);
             ctx.pipeline().remove(this); // handshake finished, remove TaskHandShakeHandler from pipeline
@@ -302,8 +317,7 @@ public class TaskBackend {
                 taskCallback.onLost(taskId);
 
                 LOGGER.info("task [{}] {} lost connection", taskId, taskInstances.get(taskId));
-                taskInstances.remove(taskId);
-                remoteTasks.remove(taskId);
+                removeTaskInfo(taskId);
             }
         }
 
@@ -323,8 +337,7 @@ public class TaskBackend {
 
                 LOGGER.info("task {} {} succeed", taskId, taskInstances.get(taskId));
 
-                taskInstances.remove(taskId);
-                remoteTasks.remove(taskId);
+                removeTaskInfo(taskId);
             } else if (msg instanceof TaskFailure) {
                 long taskId = this.remoteTaskHandle.getTaskId();
 
@@ -343,8 +356,7 @@ public class TaskBackend {
                 LOGGER.info("task [{}] {} failed", taskId, taskInstances.get(taskId));
                 taskCallback.onFailure(taskId);
 
-                taskInstances.remove(taskId);
-                remoteTasks.remove(taskId);
+                removeTaskInfo(taskId);
             } else if (msg instanceof LogQueryResult) {
                 LogQueryResult logQueryResult = (LogQueryResult) msg;
                 this.remoteTaskHandle.getLogExchange().set(logQueryResult.getLines());
@@ -360,8 +372,9 @@ public class TaskBackend {
 
     private void removeTaskInfo(long taskId) {
         taskInstances.remove(taskId);
+        Channel channel = remoteTasks.get(taskId).getChannel();
         remoteTasks.remove(taskId);
-        startingTaskIds.remove(taskId);
+        channelMap.remove(channel);
     }
 
     /**

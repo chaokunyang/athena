@@ -27,4 +27,7 @@ public interface Task extends Serializable {
 
     }
 
+    default void onKilled(TaskContext ctx) {
+
+    }
 }
