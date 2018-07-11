@@ -122,7 +122,7 @@ public class JdbcUtils {
                 tableName, whereClause, orderByClause, offset, page.getSize());
         try (Connection connection = dataSource.getConnection();
              Statement statement = connection.createStatement();
-             ResultSet countRs = statement.executeQuery("SELECT COUNT(*) AS total FROM " + tableName)) {
+             ResultSet countRs = statement.executeQuery("SELECT COUNT(*) AS total FROM " + tableName + whereClause)) {
             List<T> items = query(connection, sql, rowMapper);
 
             long total = 0;
