@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -26,6 +27,7 @@ public class NettyRpcClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(NettyRpcClient.class);
     private final String host;
     private final int port;
+    private final long timeout;
     private final Bootstrap b;
     private Channel channel;
     private Serializable response;
@@ -33,9 +35,15 @@ public class NettyRpcClient {
     private final Condition empty = lock.newCondition();
     private final Condition notEmpty = lock.newCondition();
 
-    public NettyRpcClient(String host, int port) {
+    /**
+     * @param host host
+     * @param port port
+     * @param timeout timeout milliseconds
+     */
+    public NettyRpcClient(String host, int port, long timeout) {
         this.host = host;
         this.port = port;
+        this.timeout = timeout;
 
         EventLoopGroup group;
         Class<? extends SocketChannel> channelClass;
@@ -78,7 +86,11 @@ public class NettyRpcClient {
             lock.lock();
             channel.writeAndFlush(msg);
             try {
-                while (response == null) notEmpty.await();
+                while (response == null) {
+                    if (!notEmpty.await(timeout, TimeUnit.MILLISECONDS)) {
+                        throw new RpcTimeoutException(String.format("netty rpc client timeout for %d milliseconds", timeout));
+                    }
+                }
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
