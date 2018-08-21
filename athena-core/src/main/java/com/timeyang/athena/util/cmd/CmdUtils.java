@@ -7,7 +7,9 @@ import com.timeyang.athena.util.SystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Arrays;
 
 /**
@@ -43,28 +45,59 @@ public class CmdUtils {
     }
 
     private static Result exec(String[] commands) {
+        return exec(commands, true);
+    }
+
+    private static Result exec(String[] commands, boolean captureOutput) {
         try {
             LOGGER.info("Execute: " + Arrays.toString(commands));
             Process process = Runtime.getRuntime().exec(commands);
-            int code = process.waitFor();
-            String procOutput = IoUtils.toString(process.getInputStream(), SystemUtils.ENCODING);
-            String procError = IoUtils.toString(process.getErrorStream(), SystemUtils.ENCODING);
 
-            if (code != 0) {
-                if (StringUtils.hasLength(procOutput))
-                    LOGGER.error("cmd output: " + procOutput);
-                if (StringUtils.hasLength(procError)) {
-                    LOGGER.error("cmd error: " + procError);
+            if (captureOutput) {
+                String procOutput = IoUtils.toString(process.getInputStream(), SystemUtils.ENCODING);
+                String procError = IoUtils.toString(process.getErrorStream(), SystemUtils.ENCODING);
+                int code = process.waitFor();
+
+                if (code != 0) {
+                    if (StringUtils.hasLength(procOutput))
+                        LOGGER.error("cmd output: " + procOutput);
+                    if (StringUtils.hasLength(procError)) {
+                        LOGGER.error("cmd error: " + procError);
+                    }
+
+                    return new Result(code, procOutput, procError);
+                } else {
+                    if (StringUtils.hasLength(procOutput))
+                        LOGGER.info("cmd output: " + procOutput);
+                    if (StringUtils.hasLength(procError)) {
+                        LOGGER.info("cmd error: " + procError);
+                    }
+                    return new Result(code, procOutput, procError);
                 }
-
-                return new Result(code, procOutput, procError);
             } else {
-                if (StringUtils.hasLength(procOutput))
-                    LOGGER.info("cmd output: " + procOutput);
-                if (StringUtils.hasLength(procError)) {
-                    LOGGER.info("cmd error: " + procError);
+                BufferedReader stdInput = new BufferedReader(new
+                        InputStreamReader(process.getInputStream()));
+
+                BufferedReader stdError = new BufferedReader(new
+                        InputStreamReader(process.getErrorStream()));
+
+                System.out.println("Standard output of the command:\n");
+                String s;
+                while ((s = stdInput.readLine()) != null) {
+                    System.out.println(s);
                 }
-                return new Result(code, procOutput, procError);
+
+                s = stdError.readLine();
+                if (s != null) {
+                    System.out.println("Standard error of the command:\n");
+                    System.out.println(s);
+                }
+                while ((s = stdError.readLine()) != null) {
+                    System.out.println(s);
+                }
+
+                int code = process.waitFor();
+                return new Result(code, null, null);
             }
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
