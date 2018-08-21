@@ -16,7 +16,7 @@ public class Hadoop extends DistributedComponent {
 
     @Override
     public String getName() {
-        return null;
+        return "hadoop";
     }
 
     @Override
@@ -26,7 +26,7 @@ public class Hadoop extends DistributedComponent {
 
     @Override
     public String configDir() {
-        return null;
+        return "etc/hadoop";
     }
 
     @Override
@@ -39,7 +39,6 @@ public class Hadoop extends DistributedComponent {
 
     }
 
-    @Override
     public void start() {
 
     }
