@@ -365,7 +365,20 @@ public class TaskBackend {
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-            LOGGER.error(cause.getMessage(), cause);
+            LOGGER.error("task handler exception, move task to failed: {}", cause.getMessage(), cause);
+            Long taskId = channelMap.get(ctx.channel());
+            Task task = taskInstances.get(taskId);
+            try {
+                task.onError(TaskContextImpl.makeTaskContext(taskId), cause);
+            } catch (Throwable t) {
+                String logMsg = String.format("Call task [%s] onError method failed", task);
+                LOGGER.warn(logMsg, t);
+            }
+
+            LOGGER.info("task [{}] {} failed", taskId, taskInstances.get(taskId));
+            taskCallback.onFailure(taskId);
+
+            removeTaskInfo(taskId);
             ctx.close();
         }
     }

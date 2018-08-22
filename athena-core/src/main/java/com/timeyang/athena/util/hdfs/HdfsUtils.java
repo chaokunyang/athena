@@ -20,7 +20,4 @@ public class HdfsUtils {
             throw new RuntimeException(e);
         }
     }
-
-
-
 }
