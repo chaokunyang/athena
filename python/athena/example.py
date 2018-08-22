@@ -62,7 +62,6 @@ class PySparkTask:
 
     def execute(self):
         print("execute ", self.__class__)
-        try:
         from pyspark.context import SparkContext
         from pyspark.sql import SparkSession
         sc = SparkContext(appName='test PySparkTask')
