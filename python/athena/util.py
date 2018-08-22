@@ -4,6 +4,7 @@ import sys
 import os
 import importlib
 import logging
+import re
 
 
 def parse_args(args: list):
@@ -38,9 +39,11 @@ def prepare_packages(packages: list):
 
 def import_code(qualified_name: str):
     if qualified_name.endswith(".py"):
-        if qualified_name not in sys.path:
-            sys.path.insert(0, qualified_name)
-        return importlib.import_module(qualified_name[0:-3].replace(os.sep, '.'))
+        dir_path = os.path.dirname(qualified_name)
+        file_name = os.path.basename(qualified_name)
+        if dir_path not in sys.path:
+            sys.path.insert(0, dir_path)
+        return importlib.import_module(file_name[0:-3])
     else:
         try:
             return importlib.import_module(qualified_name)
