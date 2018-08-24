@@ -161,6 +161,8 @@ public class ClassUtils {
 
     public static Set<String> getSparkClasspath() {
         String sparkHome = System.getenv("SPARK_HOME");
+        if (sparkHome == null)
+            return Collections.emptySet();
         Path libPath = Paths.get(sparkHome, "lib");
         if (!Files.exists(libPath)) {
             libPath = Paths.get(sparkHome, "jars");

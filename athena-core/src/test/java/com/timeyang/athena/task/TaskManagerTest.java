@@ -5,6 +5,7 @@ import com.timeyang.athena.AthenaConf;
 import com.timeyang.athena.task.exec.TaskUtils;
 import com.timeyang.athena.util.ClassUtils;
 import com.timeyang.athena.util.IoUtils;
+import com.timeyang.athena.util.SystemUtils;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -35,9 +36,10 @@ public class TaskManagerTest {
 
         for (int i = 0; i < tasks; i++) {
             String classpath = ClassUtils.getCurrentClasspath().stream().collect(Collectors.joining(";"));
-            String athenaClasspath = Arrays.stream(classpath.split(";"))
+            String split = SystemUtils.IS_WINDOWS ? ";" : ":";
+            String athenaClasspath = Arrays.stream(classpath.split(split))
                     .filter(cp -> cp.contains("athena"))
-                    .collect(Collectors.joining(";"));
+                    .collect(Collectors.joining(split));
             System.out.println(athenaClasspath);
 
             String classpathFilePath = Paths
@@ -73,7 +75,7 @@ public class TaskManagerTest {
             }
             task.setMaxTries(3);
 
-            task.setClasspath(athenaClasspath);
+            task.setLibs(athenaClasspath);
             task.setParams(params);
 
             long taskId = taskManager.submitTask(task);
