@@ -119,7 +119,7 @@ public class TaskRepository {
                     makeSetter("params", task.getParams()),
                     makeSetter("max_tries", task.getMaxTries()),
                     makeSetter("submit_time", Timestamp.from(task.getSubmitTime())),
-                    makeSetter("classpath", task.getClasspath()),
+                    makeSetter("classpath", task.getLibs()),
                     makeSetter("retry_wait", task.getRetryWait()),
                     makeSetter("task_type", task.getTaskType().toString()),
                     makeSetter("host_fixed", task.isHostFixed()));
@@ -206,7 +206,7 @@ public class TaskRepository {
             pStatement.setTimestamp(8, Timestamp.from(task.getStartTime()));
             pStatement.setInt(9, task.getTryNumber());
             pStatement.setInt(10, task.getPid());
-            pStatement.setString(11, task.getClasspath());
+            pStatement.setString(11, task.getLibs());
             pStatement.setLong(12, task.getRetryWait());
             pStatement.setString(13, task.getTaskType().toString());
             pStatement.setBoolean(14, task.isHostFixed());
@@ -285,7 +285,7 @@ public class TaskRepository {
             pStatement.setTimestamp(7, Timestamp.from(task.getSubmitTime()));
             pStatement.setString(8, task.getState().toString());
             pStatement.setInt(9, task.getTryNumber());
-            pStatement.setString(10, task.getClasspath());
+            pStatement.setString(10, task.getLibs());
             pStatement.setLong(11, task.getRetryWait());
             pStatement.setString(12, task.getTaskType().toString());
             pStatement.setBoolean(13, task.isHostFixed());
@@ -327,7 +327,7 @@ public class TaskRepository {
             pStatement.setLong(10, task.getDuration().getSeconds());
             pStatement.setString(11, task.getState().toString());
             pStatement.setInt(12, task.getTryNumber());
-            pStatement.setString(13, task.getClasspath());
+            pStatement.setString(13, task.getLibs());
             pStatement.setLong(14, task.getRetryWait());
             pStatement.setString(15, task.getTaskType().toString());
             pStatement.setBoolean(16, task.isHostFixed());
@@ -390,7 +390,7 @@ public class TaskRepository {
         task.setHost(rs.getString("host"));
         task.setHostFixed(rs.getBoolean("host_fixed"));
         task.setClassName(rs.getString("class_name"));
-        task.setClasspath(rs.getString("classpath"));
+        task.setLibs(rs.getString("classpath"));
         task.setParams(rs.getString("params"));
         task.setMaxTries(rs.getInt("max_tries"));
         task.setRetryWait(rs.getLong("retry_wait"));
@@ -407,7 +407,7 @@ public class TaskRepository {
         task.setHost(rs.getString("host"));
         task.setHostFixed(rs.getBoolean("host_fixed"));
         task.setClassName(rs.getString("class_name"));
-        task.setClasspath(rs.getString("classpath"));
+        task.setLibs(rs.getString("classpath"));
         task.setParams(rs.getString("params"));
         task.setMaxTries(rs.getInt("max_tries"));
         task.setRetryWait(rs.getLong("retry_wait"));
@@ -427,7 +427,7 @@ public class TaskRepository {
         task.setHost(rs.getString("host"));
         task.setHostFixed(rs.getBoolean("host_fixed"));
         task.setClassName(rs.getString("class_name"));
-        task.setClasspath(rs.getString("classpath"));
+        task.setLibs(rs.getString("classpath"));
         task.setParams(rs.getString("params"));
         task.setMaxTries(rs.getInt("max_tries"));
         task.setRetryWait(rs.getLong("retry_wait"));

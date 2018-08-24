@@ -113,11 +113,11 @@ public class TaskUtils {
         if (StringUtils.hasText(athenaClasspath)) {
             classpathBuilder.append(athenaClasspath);
         }
-        if (StringUtils.hasText(task.getClasspath())) {
+        if (StringUtils.hasText(task.getLibs())) {
             if (StringUtils.hasText(classpathBuilder)) {
                 classpathBuilder.append(CLASSPATH_SPLIT);
             }
-            classpathBuilder.append(task.getClasspath());
+            classpathBuilder.append(task.getLibs());
         }
         String extraClasspath =
                 ParametersUtils.fromArgs(params).getOrDefault("extraClasspath", "");

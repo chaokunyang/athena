@@ -22,7 +22,7 @@ public abstract class TaskInfo {
      * {@link com.timeyang.athena.task.exec.TaskFactory} className
      */
     private String className;
-    private String classpath;
+    private String libs;
     private String params;
     /**
      * max retry number
@@ -82,12 +82,12 @@ public abstract class TaskInfo {
         this.className = className;
     }
 
-    public String getClasspath() {
-        return classpath;
+    public String getLibs() {
+        return libs;
     }
 
-    public void setClasspath(String classpath) {
-        this.classpath = classpath;
+    public void setLibs(String libs) {
+        this.libs = libs;
     }
 
     public String getParams() {
@@ -130,7 +130,7 @@ public abstract class TaskInfo {
                 ", host='" + host + '\'' +
                 ", hostFixed='" + hostFixed + '\'' +
                 ", className='" + className + '\'' +
-                ", classpath='" + classpath + '\'' +
+                ", libs='" + libs + '\'' +
                 ", params='" + params + '\'' +
                 ", maxTries=" + maxTries +
                 ", retryWait=" + retryWait +
@@ -154,7 +154,7 @@ public abstract class TaskInfo {
             super.setHost(task.getHost());
             super.setHostFixed(task.isHostFixed());
             super.setClassName(task.getClassName());
-            super.setClasspath(task.getClasspath());
+            super.setLibs(task.getLibs());
             super.setParams(task.getParams());
             super.setMaxTries(task.getMaxTries());
             super.setRetryWait(task.getRetryWait());
@@ -210,7 +210,7 @@ public abstract class TaskInfo {
             super.setHost(task.getHost());
             super.setHostFixed(task.isHostFixed());
             super.setClassName(task.getClassName());
-            super.setClasspath(task.getClasspath());
+            super.setLibs(task.getLibs());
             super.setParams(task.getParams());
             super.setMaxTries(task.getMaxTries());
             super.setRetryWait(task.getRetryWait());
@@ -224,7 +224,7 @@ public abstract class TaskInfo {
             super.setHost(task.getHost());
             super.setHostFixed(task.isHostFixed());
             super.setClassName(task.getClassName());
-            super.setClasspath(task.getClasspath());
+            super.setLibs(task.getLibs());
             super.setParams(task.getParams());
             super.setMaxTries(task.getMaxTries());
             super.setRetryWait(task.getRetryWait());
