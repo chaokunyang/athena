@@ -127,7 +127,8 @@ public class ClassUtils {
                 }
 
                 Set<String> hcp = new LinkedHashSet<>();
-                String[] splits = sb.toString().split("[:,;]");
+                String sep = System.getProperty("os.name").toUpperCase().startsWith("WINDOWS") ? ";" : ":";
+                String[] splits = sb.toString().split(sep);
                 for (String split : splits) {
                     if (split.endsWith("*")) {
                         Files.list(Paths.get(split.substring(0, split.length() - 1)))

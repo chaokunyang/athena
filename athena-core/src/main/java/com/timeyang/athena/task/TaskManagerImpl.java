@@ -129,7 +129,7 @@ public class TaskManagerImpl implements TaskManager {
         boolean isFinished = finishedTask != null ||
                 (this.taskRepository.getWaitingTask(taskId) == null && !this.taskRepository.getRunningTask(taskId).isPresent());
 
-        LOGGER.info("task [{}] is finished: {}", isFinished);
+        LOGGER.info("task [{}] is finished: {}", taskId, isFinished);
         return isFinished;
     }
 

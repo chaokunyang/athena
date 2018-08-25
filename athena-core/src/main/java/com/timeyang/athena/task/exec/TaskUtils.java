@@ -119,14 +119,7 @@ public class TaskUtils {
             }
             classpathBuilder.append(task.getLibs());
         }
-        String extraClasspath =
-                ParametersUtils.fromArgs(params).getOrDefault("extraClasspath", "");
-        if (StringUtils.hasText(extraClasspath)) {
-            if (StringUtils.hasText(classpathBuilder)) {
-                classpathBuilder.append(CLASSPATH_SPLIT);
-            }
-            classpathBuilder.append(extraClasspath);
-        }
+
         return classpathBuilder.toString();
     }
 

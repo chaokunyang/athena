@@ -40,7 +40,8 @@ public class TaskExecutorLauncher {
      * get classpath
      */
     private static URL[] getClassPath(String mainClasspath, String classpathFilePath) {
-        List<String> mainClasspathList = Arrays.asList(mainClasspath.split("[;,:]"));
+        String sep = System.getProperty("os.name").toUpperCase().startsWith("WINDOWS") ? ";" : ":";
+        List<String> mainClasspathList = Arrays.asList(mainClasspath.split(sep));
         Set<String> classpath = new LinkedHashSet<>(mainClasspathList); // reserve order
 
         if (classpathFilePath != null &&
@@ -48,7 +49,7 @@ public class TaskExecutorLauncher {
             File classpathFile = new File(classpathFilePath);
             try {
                 String extraClasspathStr = IoUtils.readFile(classpathFile, "UTF-8");
-                String[] splits = extraClasspathStr.split("[;,:]");
+                String[] splits = extraClasspathStr.split(sep);
                 for (String split : splits) {
                     if (split.endsWith("*")) {
                         Files.list(Paths.get(split.substring(0, split.length() - 1)))
