@@ -55,16 +55,6 @@ public class TaskManagerTest {
             System.out.println("classpathFilePath: " + classpathFilePath);
             String params = "--classpathFile " + classpathFilePath;
 
-            if (i == 2) {
-                Map<String, String> paramsMap = new HashMap<>();
-                paramsMap.put("extraClasspath", athenaClasspath);
-                paramsMap.put("classpathFile", classpathFilePath);
-                long taskId = taskManager.submitTask("TestTaskFactory" + System.currentTimeMillis(),
-                        TestTaskFactory.class, paramsMap);
-                System.out.println(taskId);
-                continue;
-            }
-
             TaskInfo task = new TaskInfo.WaitingTask();
             task.setTaskName("task" + System.currentTimeMillis());
             task.setHost("localhost");
@@ -72,6 +62,8 @@ public class TaskManagerTest {
                 task.setClassName("com.timeyang.athena.task.TestTask");
             } else if (i % 3 == 1) {
                 task.setClassName("com.timeyang.athena.task.TestFailTask");
+            } else {
+                task.setClassName("com.timeyang.athena.task.TestTaskFactory");
             }
             task.setMaxTries(3);
 
