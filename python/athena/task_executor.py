@@ -92,6 +92,7 @@ class TaskExecutor:
                 await asyncio.sleep(self.heartbeat_timeout)
                 self.logger.info("Send HEARTBEAT message")
                 self.writer.write(self.op_codes_dict['HEARTBEAT'])
+                self.writer.write(self.task_id.to_bytes(8, byteorder='big'))
                 try:
                     await self.writer.drain()
                 except Exception as e:

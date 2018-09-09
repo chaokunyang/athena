@@ -78,7 +78,18 @@ public abstract class TaskMessage {
         }
     }
 
-    public static final class HeartBeat extends ObjectMessage {}
+    public static final class HeartBeat extends ObjectMessage {
+        private final long taskId;
+
+        public HeartBeat(long taskId) {
+            this.taskId = taskId;
+        }
+
+
+        public long getTaskId() {
+            return taskId;
+        }
+    }
 
     public static final class LogQueryRequest extends ObjectMessage {
         private int lineNumber;
