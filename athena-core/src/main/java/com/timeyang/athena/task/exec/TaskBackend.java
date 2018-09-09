@@ -3,10 +3,7 @@ package com.timeyang.athena.task.exec;
 import com.timeyang.athena.AthenaConf;
 import com.timeyang.athena.task.TaskInfo;
 import com.timeyang.athena.task.message.TaskMessage;
-import com.timeyang.athena.task.message.TaskMessage.LogQueryRequest;
-import com.timeyang.athena.task.message.TaskMessage.LogQueryResult;
-import com.timeyang.athena.task.message.TaskMessage.TaskFailure;
-import com.timeyang.athena.task.message.TaskMessage.TaskSuccess;
+import com.timeyang.athena.task.message.TaskMessage.*;
 import com.timeyang.athena.task.message.TaskMessageCodec;
 import com.timeyang.athena.util.ParametersUtils;
 import com.timeyang.athena.util.StringUtils;
@@ -264,13 +261,14 @@ public class TaskBackend {
     /**
      * fire TaskMessage.TaskLost event when timeout
      */
-    private static class TaskHeartbeatHandler extends ChannelInboundHandlerAdapter {
+    private class TaskHeartbeatHandler extends SimpleChannelInboundHandler<HeartBeat> {
 
         @Override
         public void userEventTriggered(ChannelHandlerContext ctx,
                                        Object evt) throws Exception {
             if (evt instanceof IdleStateEvent) {
-                ctx.writeAndFlush(new TaskMessage.HeartBeat())
+                long taskId = channelMap.get(ctx.channel());
+                ctx.writeAndFlush(new HeartBeat(taskId))
                         .addListener((ChannelFutureListener) future -> {
                             if (!future.isSuccess()) {
                                 LOGGER.error(future.cause().getMessage(), future.cause());
@@ -279,6 +277,14 @@ public class TaskBackend {
                         });
             } else {
                 super.userEventTriggered(ctx, evt);
+            }
+        }
+
+        @Override
+        protected void channelRead0(ChannelHandlerContext ctx, HeartBeat heartBeat) throws Exception {
+            if (!remoteTasks.containsKey(heartBeat.getTaskId())) {
+                LOGGER.info("lost task [{}] try to reconnect, send TASK_KILL message", heartBeat.getTaskId());
+                ctx.channel().writeAndFlush(new TaskMessage.KillTask());
             }
         }
     }

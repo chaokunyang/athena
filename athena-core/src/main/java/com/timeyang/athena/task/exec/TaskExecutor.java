@@ -160,7 +160,7 @@ public class TaskExecutor {
         public void userEventTriggered(ChannelHandlerContext ctx,
                                        Object evt) throws Exception {
             if (evt instanceof IdleStateEvent) {
-                ctx.writeAndFlush(new HeartBeat())
+                ctx.writeAndFlush(new HeartBeat(taskId))
                         .addListener((ChannelFutureListener) future -> {
                             if (!future.isSuccess()) {
                                 LOGGER.error("task [{}] connection to taskManager timeout.  Exit taskExecutor now", taskId, future.cause());

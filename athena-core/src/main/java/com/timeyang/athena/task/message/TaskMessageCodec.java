@@ -19,7 +19,6 @@ public class TaskMessageCodec extends ByteToMessageCodec<TaskMessage> {
     private static final byte OPCODE_TASK_SUBMIT = 0x02;
     private static final byte OPCODE_TASK_SUCCESS = 0x03;
     private static final byte OPCODE_KILL_TASK = 0x04;
-    private static final byte OPCODE_HEARTBEAT = 0x05;
 
     private byte messageCode;
     private int messageLength;
@@ -54,9 +53,6 @@ public class TaskMessageCodec extends ByteToMessageCodec<TaskMessage> {
 
         if (msg instanceof KillTask) {
             out.writeByte(OPCODE_KILL_TASK);
-        }
-        if (msg instanceof HeartBeat) {
-            out.writeByte(OPCODE_HEARTBEAT);
         }
     }
 
@@ -113,10 +109,6 @@ public class TaskMessageCodec extends ByteToMessageCodec<TaskMessage> {
 
         if (messageCode == OPCODE_KILL_TASK) {
             out.add(new KillTask());
-            messageCode = 0; // mark message read finished
-        }
-        if (messageCode == OPCODE_HEARTBEAT) {
-            out.add(new HeartBeat());
             messageCode = 0; // mark message read finished
         }
     }
