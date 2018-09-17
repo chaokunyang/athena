@@ -90,7 +90,7 @@ public class TaskExecutor {
                             throws Exception {
                         ChannelPipeline pipeline = ch.pipeline();
 
-                        pipeline.addLast(new IdleStateHandler(0, 0, 60, TimeUnit.SECONDS));
+                        pipeline.addLast(new IdleStateHandler(0, 60, 0, TimeUnit.SECONDS));
                         pipeline.addLast(new TaskMessageCodec());
                         pipeline.addLast(new HeartbeatHandler());
                         pipeline.addLast(new TaskExecutorHandler());
@@ -162,7 +162,9 @@ public class TaskExecutor {
             if (evt instanceof IdleStateEvent) {
                 ctx.writeAndFlush(new HeartBeat(taskId))
                         .addListener((ChannelFutureListener) future -> {
-                            if (!future.isSuccess()) {
+                            if (future.isSuccess()) {
+                                LOGGER.info("task [{}] heartbeat succeed", taskId);
+                            } else {
                                 LOGGER.error("task [{}] connection to taskManager timeout.  Exit taskExecutor now", taskId, future.cause());
                                 ctx.close().syncUninterruptibly();
                                 System.exit(0);

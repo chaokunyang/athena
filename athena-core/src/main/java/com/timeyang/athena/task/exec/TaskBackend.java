@@ -81,7 +81,7 @@ public class TaskBackend {
                     @Override
                     protected void initChannel(Channel ch) throws Exception {
                         ChannelPipeline pipeline = ch.pipeline();
-                        pipeline.addLast(new IdleStateHandler(0, 0, athenaConf.getTaskHeartbeatTimeout(), TimeUnit.SECONDS));
+                        pipeline.addLast(new IdleStateHandler(athenaConf.getTaskHeartbeatTimeout(), 0, 0, TimeUnit.SECONDS));
 
                         pipeline.addLast(
                                 new TaskHandShakeHandler());
@@ -192,7 +192,7 @@ public class TaskBackend {
                 TaskContext taskContext = TaskContextImpl.makeTaskContext(taskId);
                 task.onKilled(taskContext);
 
-                removeTaskInfo(taskId);
+                clear(taskId);
                 startingTaskIds.remove(taskId);
                 future.channel().close();
                 runnable.run();
@@ -270,7 +270,10 @@ public class TaskBackend {
                 long taskId = channelMap.get(ctx.channel());
                 ctx.writeAndFlush(new HeartBeat(taskId))
                         .addListener((ChannelFutureListener) future -> {
-                            if (!future.isSuccess()) {
+                            if (future.isSuccess()) {
+                                LOGGER.info("Task[{}] heartbeat succeed", taskId);
+                            } else {
+                                LOGGER.error("Task[{}] heartbeat failed", taskId);
                                 LOGGER.error(future.cause().getMessage(), future.cause());
                                 ctx.fireUserEventTriggered(TaskEvent.TASK_LOST);
                             }
@@ -284,7 +287,20 @@ public class TaskBackend {
         protected void channelRead0(ChannelHandlerContext ctx, HeartBeat heartBeat) throws Exception {
             if (!remoteTasks.containsKey(heartBeat.getTaskId())) {
                 LOGGER.info("lost task [{}] try to reconnect, send TASK_KILL message", heartBeat.getTaskId());
-                ctx.channel().writeAndFlush(new TaskMessage.KillTask());
+                ChannelFuture channelFuture = ctx.channel().writeAndFlush(new KillTask());
+                channelFuture.syncUninterruptibly();
+                Long taskId = channelMap.get(ctx.channel());
+                clear(taskId);
+            }
+        }
+
+        @Override
+        public void channelInactive(ChannelHandlerContext ctx) {
+            Long taskId = channelMap.get(ctx.channel());
+            // taskId will be null if and only if channel is closed by taskBackend
+            if (taskId != null) {
+                LOGGER.error("Task[{}] lost, fire TASK_LOST event", taskId);
+                ctx.fireUserEventTriggered(TaskEvent.TASK_LOST);
             }
         }
     }
@@ -323,7 +339,7 @@ public class TaskBackend {
                 taskCallback.onLost(taskId);
 
                 LOGGER.info("task [{}] {} lost connection", taskId, taskInstances.get(taskId));
-                removeTaskInfo(taskId);
+                clear(taskId);
             }
         }
 
@@ -343,7 +359,7 @@ public class TaskBackend {
 
                 LOGGER.info("task {} {} succeed", taskId, taskInstances.get(taskId));
 
-                removeTaskInfo(taskId);
+                clear(taskId);
             } else if (msg instanceof TaskFailure) {
                 long taskId = this.remoteTaskHandle.getTaskId();
 
@@ -362,7 +378,7 @@ public class TaskBackend {
                 LOGGER.info("task [{}] {} failed", taskId, taskInstances.get(taskId));
                 taskCallback.onFailure(taskId);
 
-                removeTaskInfo(taskId);
+                clear(taskId);
             } else if (msg instanceof LogQueryResult) {
                 LogQueryResult logQueryResult = (LogQueryResult) msg;
                 this.remoteTaskHandle.getLogExchange().set(logQueryResult.getLines());
@@ -384,20 +400,22 @@ public class TaskBackend {
             LOGGER.info("task [{}] {} failed", taskId, taskInstances.get(taskId));
             taskCallback.onFailure(taskId);
 
-            removeTaskInfo(taskId);
-            ctx.close();
+            clear(taskId);
         }
     }
 
-    private void removeTaskInfo(long taskId) {
+    private void clear(long taskId) {
         taskInstances.remove(taskId);
-        Channel channel = remoteTasks.get(taskId).getChannel();
-        remoteTasks.remove(taskId);
+        RemoteTaskHandle taskHandle = remoteTasks.remove(taskId);
+        Channel channel = taskHandle != null ? taskHandle.getChannel() : null;
         channelMap.remove(channel);
+        if (channel != null) {
+            channel.close();
+        }
     }
 
     /**
-     * TaskExecutor handler
+     * RemoteTaskHandler
      *
      * @author https://github.com/chaokunyang
      */
